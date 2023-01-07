@@ -1,5 +1,6 @@
 import discord
 import responses
+import bot_token
 
 async def send_message(guild_members, guild_roles, message, user_message, is_private):
     try:
@@ -10,7 +11,7 @@ async def send_message(guild_members, guild_roles, message, user_message, is_pri
         print(e)
 
 def run_discord_bot():
-    TOKEN = 'MTA2MTA1NTgyMjQyNTI0Nzg1NA.G_xq8g.H5A6DIu5CX8KJbWydiAPJCfqI06a08Ys2X_usc'
+    token = bot_token.token
     intents = discord.Intents.default()
     intents.message_content = True
     intents.members = True
@@ -37,4 +38,4 @@ def run_discord_bot():
                 user_message = user_message[2:]
                 await send_message(message.guild.members, message.guild.roles, message, user_message, is_private=False)
 
-    client.run(TOKEN)
+    client.run(token)
