@@ -22,8 +22,12 @@ def run_discord_bot():
             print("Exception: \n")
             print(e)
 
+    @client.event
+    async def on_member_join(member):
+        await responses.add_unverified(member, member.guild.roles)
+
     @client.tree.command(name="updateranks")
-    async def updateranks(interaction: discord.Interaction):
+    async def update_ranks(interaction: discord.Interaction):
         await interaction.response.defer()
         await interaction.followup.send(
             await responses.update_ranks(interaction.guild.members, interaction.guild.roles))

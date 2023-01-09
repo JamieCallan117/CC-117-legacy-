@@ -254,11 +254,13 @@ async def verify(member, roles, player_name):
     # ool_member = get(roles, name="OoL Member")
     ally_owner = get(roles, name="Ally Guild Owner")
 
-    has_updated = False
+    verified = False
 
     for i in range(0, len(g_json['members'])):
         if g_json['members'][i]["name"].lower() == player_name.lower():
             uuid = g_json['members'][i]['uuid']
+
+            verified = True
 
             await member.add_roles(member_of)
             await member.remove_roles(unverified)
@@ -269,37 +271,31 @@ async def verify(member, roles, player_name):
                         print(member.name + " is the Owner of the Guild.")
                         await member.add_roles(owner)
                         await member.remove_roles(chief, strategist, captain, recruiter, recruit)
-                        has_updated = True
                 case "CHIEF":
                     if get(member.roles, name="Chief") is None:
                         print(member.name + " is a Chief of the Guild.")
                         await member.add_roles(chief)
                         await member.remove_roles(owner, strategist, captain, recruiter, recruit)
-                        has_updated = True
                 case "STRATEGIST":
                     if get(member.roles, name="Strategist") is None:
                         print(member.name + " is a Strategist of the Guild.")
                         await member.add_roles(strategist)
                         await member.remove_roles(owner, chief, captain, recruiter, recruit)
-                        has_updated = True
                 case "CAPTAIN":
                     if get(member.roles, name="Captain") is None:
                         print(member.name + " is a Captain of the Guild.")
                         await member.add_roles(captain)
                         await member.remove_roles(owner, chief, strategist, recruiter, recruit)
-                        has_updated = True
                 case "RECRUITER":
                     if get(member.roles, name="Recruiter") is None:
                         print(member.name + " is a Recruiter of the Guild.")
                         await member.add_roles(recruiter)
                         await member.remove_roles(owner, chief, strategist, captain, recruit)
-                        has_updated = True
                 case "RECRUIT":
                     if get(member.roles, name="Recruit") is None:
                         print(member.name + " is a Recruit of the Guild.")
                         await member.add_roles(recruit)
                         await member.remove_roles(owner, chief, strategist, captain, recruiter)
-                        has_updated = True
 
             p_json = wynnapi.player_json(uuid)
 
@@ -309,37 +305,34 @@ async def verify(member, roles, player_name):
                         print(member.name + " is a VIP.")
                         await member.add_roles(vip)
                         await member.remove_roles(vip_plus, hero, champion)
-                        has_updated = True
                 case "VIP+":
                     if get(member.roles, name="VIP+") is None:
                         print(member.name + " is a VIP+.")
                         await member.add_roles(vip_plus)
                         await member.remove_roles(vip, hero, champion)
-                        has_updated = True
                 case "HERO":
                     if get(member.roles, name="HERO") is None:
                         print(member.name + " is a HERO.")
                         await member.add_roles(hero)
                         await member.remove_roles(vip, vip_plus, champion)
-                        has_updated = True
                 case "CHAMPION":
                     if get(member.roles, name="CHAMPION") is None:
                         print(member.name + " is a CHAMPION.")
                         await member.add_roles(champion)
                         await member.remove_roles(vip, vip_plus, hero)
-                        has_updated = True
 
             if p_json['data'][0]['meta']["veteran"]:
                 if get(member.roles, name="Vet.") is None:
                     print(member.name + " is a Vet.")
                     await member.add_roles(vet)
-                    has_updated = True
             break
 
     for i in range(0, len(ally_guilds)):
         for j in range(0, len(ally_guilds[i]['members'])):
             if ally_guilds[i]['members'][j]["name"].lower() == player_name.lower():
                 uuid = ally_guilds[i]['members'][j]['uuid']
+
+                verified = True
 
                 await member.add_roles(member_of)
                 await member.remove_roles(unverified)
@@ -350,13 +343,11 @@ async def verify(member, roles, player_name):
                             print(member.name + " is the Owner of an Ally Guild.")
                             await member.add_roles(ally_owner)
                             await member.remove_roles(ally)
-                            has_updated = True
                     case "CHIEF" | "STRATEGIST" | "CAPTAIN" | "RECRUITER" | "RECRUIT":
                         if get(member.roles, name="Ally") is None:
                             print(member.name + " is a Ally of an Ally Guild.")
                             await member.add_roles(ally)
                             await member.remove_roles(ally_owner)
-                            has_updated = True
 
                 p_json = wynnapi.player_json(uuid)
 
@@ -366,35 +357,30 @@ async def verify(member, roles, player_name):
                             print(member.name + " is a VIP.")
                             await member.add_roles(vip)
                             await member.remove_roles(vip_plus, hero, champion)
-                            has_updated = True
                     case "VIP+":
                         if get(member.roles, name="VIP+") is None:
                             print(member.name + " is a VIP+.")
                             await member.add_roles(vip_plus)
                             await member.remove_roles(vip, hero, champion)
-                            has_updated = True
                     case "HERO":
                         if get(member.roles, name="HERO") is None:
                             print(member.name + " is a HERO.")
                             await member.add_roles(hero)
                             await member.remove_roles(vip, vip_plus, champion)
-                            has_updated = True
                     case "CHAMPION":
                         if get(member.roles, name="CHAMPION") is None:
                             print(member.name + " is a CHAMPION.")
                             await member.add_roles(champion)
                             await member.remove_roles(vip, vip_plus, hero)
-                            has_updated = True
 
                 if p_json['data'][0]['meta']["veteran"]:
                     if get(member.roles, name="Vet.") is None:
                         print(member.name + " is a Vet.")
                         await member.add_roles(vet)
-                        has_updated = True
 
                 break
 
-    if not has_updated:
+    if not verified:
         if get(member.roles, name="Unverified") is None:
             await member.add_roles(unverified)
             await member.remove_roles(vip, vip_plus, hero, champion, vet, recruit, recruiter, captain, strategist,
@@ -407,3 +393,9 @@ async def verify(member, roles, player_name):
         return "Verified %s as Guild member %s. (Could not change nickname)" % (member.name, player_name)
 
     return "Verified %s as Guild member %s" % (member.name, player_name)
+
+
+async def add_unverified(member, roles):
+    unverified = get(roles, name="Unverified")
+
+    await member.add_roles(unverified)
