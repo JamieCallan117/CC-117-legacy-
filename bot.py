@@ -2,6 +2,7 @@ import discord
 import responses
 import bot_token
 
+
 async def send_message(guild_members, guild_roles, message, user_message, is_private):
     try:
         response = await responses.handle_response(guild_members, guild_roles, user_message)
@@ -9,6 +10,7 @@ async def send_message(guild_members, guild_roles, message, user_message, is_pri
     except Exception as e:
         print("Exception: \n")
         print(e)
+
 
 def run_discord_bot():
     token = bot_token.token

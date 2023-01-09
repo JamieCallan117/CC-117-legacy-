@@ -3,6 +3,7 @@ from discord.utils import get
 
 
 async def handle_response(members, roles, message):
+    message = message.lower()
     p_message = message.split()
 
     members = list(members)
@@ -37,9 +38,11 @@ async def handle_response(members, roles, message):
         vip_plus = get(roles, name="VIP+")
         vip = get(roles, name="VIP")
         vet = get(roles, name="Vet.")
+        unverified = get(roles, name="Unverified")
+        member_of = get(roles, name="Member of Chiefs of Corkus")
 
         ally = get(roles, name="Ally")
-        ool_member = get(roles, name="OoL Member")
+        # ool_member = get(roles, name="OoL Member")
         ally_owner = get(roles, name="Ally Guild Owner")
 
         roles_updated = 0
@@ -47,9 +50,12 @@ async def handle_response(members, roles, message):
         for i in range(0, len(g_json['members'])):
             if len(members) > 0:
                 for member in members:
-                    print("Are Guild member %s and Discord member %s the same?" % (g_json['members'][i]["name"], member.name))
-                    if g_json['members'][i]["name"] == member.name or g_json['members'][i]["name"] == member.nick:
-                        print("The same")
+                    # print("Are Guild member %s and Discord member %s the same?" % (g_json['members'][i]["name"], member.name))
+                    nick = ""
+                    if member.nick is not None:
+                        nick = member.nick
+                    if g_json['members'][i]["name"].lower() == member.name.lower() or g_json['members'][i]["name"].lower() == nick.lower():
+                        # print("The same")
                         has_updated = False
                         uuid = g_json['members'][i]['uuid']
 
@@ -136,9 +142,12 @@ async def handle_response(members, roles, message):
             for j in range(0, len(ally_guilds[i]['members'])):
                 if len(members) > 0:
                     for member in members:
-                        print("Are Guild member %s and Discord member %s the same?" % (ally_guilds[i]['members'][j]["name"], member.name))
-                        if ally_guilds[i]['members'][j]["name"] == member.name or ally_guilds[i]['members'][j]["name"] == member.nick:
-                            print("The same")
+                        # print("Are Guild member %s and Discord member %s the same?" % (ally_guilds[i]['members'][j]["name"], member.name))
+                        nick = ""
+                        if member.nick is not None:
+                            nick = member.nick
+                        if ally_guilds[i]['members'][j]["name"].lower() == member.name.lower() or ally_guilds[i]['members'][j]["name"].lower() == nick.lower():
+                            # print("The same")
                             has_updated = False
                             uuid = ally_guilds[i]['members'][j]['uuid']
 
@@ -196,6 +205,14 @@ async def handle_response(members, roles, message):
                             members.remove(member)
 
                             break
+
+        print("%d members not found in guild" % len(members))
+        for member in members:
+            print("%s not found in Guild." % member.name)
+            if get(member.roles, name="Unverified") is None:
+                await member.add_roles(unverified)
+                await member.remove_roles(vip, vip_plus, hero, champion, vet, recruit, recruiter, captain, strategist, chief, owner, member_of, ally, ally_owner)
+                roles_updated += 1
 
         if roles_updated == 0:
             return "No roles updated."
