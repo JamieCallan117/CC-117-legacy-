@@ -149,9 +149,9 @@ async def update_ranks(members, roles):
 
                         try:
                             await member.edit(nick=ally_guilds[i]['members'][j]["name"])
-                            print("Verified %s as Guild member %s." % (member.name, ally_guilds[i]['members'][j]["name"]))
+                            print("Verified %s as Ally Guild member %s." % (member.name, ally_guilds[i]['members'][j]["name"]))
                         except Exception as e:
-                            print("Verified %s as Guild member %s. (Could not change nickname)" % (
+                            print("Verified %s as Ally Guild member %s. (Could not change nickname)" % (
                             member.name, ally_guilds[i]['members'][j]["name"]))
 
                         has_updated = False
@@ -260,6 +260,9 @@ async def verify(member, roles, player_name):
         if g_json['members'][i]["name"].lower() == player_name.lower():
             uuid = g_json['members'][i]['uuid']
 
+            await member.add_roles(member_of)
+            await member.remove_roles(unverified)
+
             match g_json['members'][i]["rank"]:
                 case "OWNER":
                     if get(member.roles, name="Owner") is None:
@@ -338,6 +341,9 @@ async def verify(member, roles, player_name):
             if ally_guilds[i]['members'][j]["name"].lower() == player_name.lower():
                 uuid = ally_guilds[i]['members'][j]['uuid']
 
+                await member.add_roles(member_of)
+                await member.remove_roles(unverified)
+
                 match ally_guilds[i]['members'][j]["rank"]:
                     case "OWNER":
                         if get(member.roles, name="Ally Guild Owner") is None:
@@ -394,9 +400,6 @@ async def verify(member, roles, player_name):
             await member.remove_roles(vip, vip_plus, hero, champion, vet, recruit, recruiter, captain, strategist,
                                       chief, owner, member_of, ally, ally_owner)
             return "%s is not a member of Chief's Of Corkus, or its allies." % player_name
-    else:
-        await member.add_roles(member_of)
-        await member.remove_roles(unverified)
 
     try:
         await member.edit(nick=player_name)
