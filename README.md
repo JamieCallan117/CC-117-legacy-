@@ -6,6 +6,7 @@ The bot applies roles to the users based on their Discord username or nickname, 
 ## Commands
 
 The bot currently features 2 commands, /updateranks and /verify.
+
 /updateranks will loop through all members of the guild and check to see if someone in the Discord server has either a matching username, or nickname.
 If and when it finds someone, it will look at that guild member to see what roles need to be applied. It will also removed the unverified role which is given
 to all members when they first join the server.
