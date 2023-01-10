@@ -1,4 +1,4 @@
-# CC-117
+# CC-117 (legacy)
 
 This is a Discord bot for the Discord server containing the guild members of the Wynncraft MMORPG Minecraft server, Chiefs Of Corkus.
 The bot applies roles to the users based on their Discord username or nickname, whichever one matches the in-game username of a member of the guild.
