@@ -17,6 +17,7 @@ import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
+import java.util.concurrent.TimeUnit;
 
 public class EventListener extends ListenerAdapter {
     WynncraftAPI wynnAPI = new WynncraftAPI();
@@ -44,6 +45,13 @@ public class EventListener extends ListenerAdapter {
         //Real server
         Role unverifiedRole = event.getGuild().getRoleById("1061791662541647913");
         event.getGuild().addRoleToMember(event.getMember(), unverifiedRole).queue();
+
+        //Test server
+        //TextChannel channel = event.getGuild().getTextChannelById("1062856380219916318");
+
+        //Real server
+        TextChannel channel = event.getGuild().getTextChannelById("1061730979913404506");
+        channel.sendMessage(event.getMember().getAsMention()).queue(m -> m.delete().queueAfter(10, TimeUnit.SECONDS));
     }
 
     @Override
