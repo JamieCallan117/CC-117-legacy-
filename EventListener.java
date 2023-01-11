@@ -91,7 +91,7 @@ public class EventListener extends ListenerAdapter {
                 break;
             case "verify":
                 try {
-                    event.deferReply().queue();
+                    event.deferReply().setEphemeral(true).queue();
                     String response = verify(event.getOption("player_name").getAsString(), event.getGuild(), event.getMember());
                     event.getHook().sendMessage(response).setEphemeral(true).queue();
                     TextChannel channel = event.getGuild().getTextChannelById("1061698530651144212");
