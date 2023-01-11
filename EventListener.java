@@ -4,13 +4,19 @@ import me.bed0.jWynn.api.v2.player.WynncraftPlayer;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Role;
+import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.events.guild.member.GuildMemberJoinEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import org.jetbrains.annotations.NotNull;
 
+import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Scanner;
 
 public class EventListener extends ListenerAdapter {
     WynncraftAPI wynnAPI = new WynncraftAPI();
@@ -32,7 +38,11 @@ public class EventListener extends ListenerAdapter {
 
     @Override
     public void onGuildMemberJoin(@NotNull GuildMemberJoinEvent event) {
-        Role unverifiedRole = event.getGuild().getRoleById("1061802077283688560"); //Real server 1061791662541647913
+        //Test server
+//        Role unverifiedRole = event.getGuild().getRoleById("1061802077283688560");
+
+        //Real server
+        Role unverifiedRole = event.getGuild().getRoleById("1061791662541647913");
         event.getGuild().addRoleToMember(event.getMember(), unverifiedRole).queue();
     }
 
@@ -82,9 +92,39 @@ public class EventListener extends ListenerAdapter {
             case "verify":
                 try {
                     event.deferReply().queue();
-                    event.getHook().sendMessage(verify(event.getOption("player_name").getAsString(), event.getGuild(), event.getMember())).queue();
+                    String response = verify(event.getOption("player_name").getAsString(), event.getGuild(), event.getMember());
+                    event.getHook().sendMessage(response).setEphemeral(true).queue();
+                    TextChannel channel = event.getGuild().getTextChannelById("1061698530651144212");
+                    channel.sendMessage(response).queue();
                 } catch (NullPointerException ex) {
                     event.getHook().sendMessage("Please enter a player name.").setEphemeral(true).queue();
+                }
+
+                break;
+            case "setguild":
+                try {
+                    event.deferReply().queue();
+                    event.getHook().sendMessage(setGuild(event.getOption("guild_name").getAsString(), event.getGuild())).queue();
+                } catch (NullPointerException ex) {
+                    event.getHook().sendMessage("Please enter a Guild name.").setEphemeral(true).queue();
+                }
+
+                break;
+            case "addally":
+                try {
+                    event.deferReply().queue();
+                    event.getHook().sendMessage(addAlly(event.getOption("guild_name").getAsString(), event.getGuild())).queue();
+                } catch (NullPointerException ex) {
+                    event.getHook().sendMessage("Please enter a Guild name.").setEphemeral(true).queue();
+                }
+
+                break;
+            case "removeally":
+                try {
+                    event.deferReply().queue();
+                    event.getHook().sendMessage(removeAlly(event.getOption("guild_name").getAsString(), event.getGuild())).queue();
+                } catch (NullPointerException ex) {
+                    event.getHook().sendMessage("Please enter a Guild name.").setEphemeral(true).queue();
                 }
 
                 break;
@@ -100,14 +140,47 @@ public class EventListener extends ListenerAdapter {
             }
         }
 
-        WynncraftGuild mainGuild = wynnAPI.v1().guildStats("Chiefs Of Corkus").run();
-        WynncraftGuild allyGuild1 = wynnAPI.v1().guildStats("The Broken Gasmask").run();
-        WynncraftGuild allyGuild2 = wynnAPI.v1().guildStats("Overseers of Light").run();
+        File guildFile = new File("/home/opc/CC-117/" + guild.getId() + "/" + "guild.txt");
+        File allyFile = new File("/home/opc/CC-117/" + guild.getId() + "/" + "allies.txt");
 
-        WynncraftGuild[] allyGuilds = new WynncraftGuild[]{allyGuild1, allyGuild2};
+        String guildName = "";
+
+        try {
+            Scanner scanner = new Scanner(guildFile);
+
+            if (scanner.hasNextLine()) {
+                guildName = scanner.nextLine();
+            }
+
+            scanner.close();
+        } catch (java.io.IOException ex) {
+            return "Make sure to set your guild with /setguild <guildname>.";
+        }
+
+        List<WynncraftGuild> allyGuilds = new ArrayList<WynncraftGuild>();
+
+        try {
+            if (allyFile.exists()) {
+                Scanner scanner = new Scanner(allyFile);
+
+                while (scanner.hasNextLine()) {
+                    WynncraftGuild allyGuild = wynnAPI.v1().guildStats(scanner.nextLine()).run();
+
+                    allyGuilds.add(allyGuild);
+
+                    System.out.println("Added Ally guild " + allyGuild.getName());
+                }
+
+                scanner.close();
+            }
+        } catch (java.io.IOException ex) {
+            return "Make sure to set your guild allies with /addally <guildname>.";
+        }
+
+        WynncraftGuild mainGuild = wynnAPI.v1().guildStats(guildName).run();
 
         int rolesUpdated = 0;
-        boolean hasUpdated = false;
+        boolean hasUpdated;
 
         for (int i = 0; i < mainGuild.getMembers().length; i++) {
             if (discordMembers.size() > 0) {
@@ -274,8 +347,8 @@ public class EventListener extends ListenerAdapter {
             }
         }
 
-        for (int i = 0; i < allyGuilds.length; i++) {
-            for (int j = 0; j < allyGuilds[i].getMembers().length; j++) {
+        for (int i = 0; i < allyGuilds.size(); i++) {
+            for (int j = 0; j < allyGuilds.get(i).getMembers().length; j++) {
                 if (discordMembers.size() > 0) {
                     for (Member member : discordMembers) {
                         String nick = null;
@@ -284,21 +357,21 @@ public class EventListener extends ListenerAdapter {
                             nick = member.getNickname();
                         }
 
-                        if (allyGuilds[i].getMembers()[j].getName().equalsIgnoreCase(member.getUser().getName()) || allyGuilds[i].getMembers()[j].getName().toLowerCase().equalsIgnoreCase(nick)) {
+                        if (allyGuilds.get(i).getMembers()[j].getName().equalsIgnoreCase(member.getUser().getName()) || allyGuilds.get(i).getMembers()[j].getName().toLowerCase().equalsIgnoreCase(nick)) {
                             guild.removeRoleFromMember(member, memberOfRole).queue();
                             guild.removeRoleFromMember(member, unverifiedRole).queue();
 
                             try {
-                                member.modifyNickname(allyGuilds[i].getMembers()[j].getName()).queue();
-                                System.out.println("Verified " + member.getUser().getName() + " as Ally Guild member " + allyGuilds[i].getMembers()[j].getName());
+                                member.modifyNickname(allyGuilds.get(i).getMembers()[j].getName()).queue();
+                                System.out.println("Verified " + member.getUser().getName() + " as Ally Guild member " + allyGuilds.get(i).getMembers()[j].getName());
                             } catch (Exception e) {
-                                System.out.println("Verified " + member.getUser().getName() + " as Ally Guild member " + allyGuilds[i].getMembers()[j].getName() + "(Could not change nickname)");
+                                System.out.println("Verified " + member.getUser().getName() + " as Ally Guild member " + allyGuilds.get(i).getMembers()[j].getName() + "(Could not change nickname)");
                             }
 
                             hasUpdated = false;
-                            String uuid = allyGuilds[i].getMembers()[j].getUuid();
+                            String uuid = allyGuilds.get(i).getMembers()[j].getUuid();
 
-                            switch (allyGuilds[i].getMembers()[j].getRank()) {
+                            switch (allyGuilds.get(i).getMembers()[j].getRank()) {
                                 case OWNER -> {
                                     if (!hasRole(member, allyOwnerRole)) {
                                         System.out.println(member.getUser().getName() + " is the Owner of an Ally Guild.");
@@ -401,14 +474,47 @@ public class EventListener extends ListenerAdapter {
     }
 
     private String verify(String playerName, Guild guild, Member member) {
-        WynncraftGuild mainGuild = wynnAPI.v1().guildStats("Chiefs Of Corkus").run();
-        WynncraftGuild allyGuild1 = wynnAPI.v1().guildStats("The Broken Gasmask").run();
-        WynncraftGuild allyGuild2 = wynnAPI.v1().guildStats("Overseers of Light").run();
+        File guildFile = new File("/home/opc/CC-117/" + guild.getId() + "/" + "guild.txt");
+        File allyFile = new File("/home/opc/CC-117/" + guild.getId() + "/" + "allies.txt");
 
-        WynncraftGuild[] allyGuilds = new WynncraftGuild[]{allyGuild1, allyGuild2};
+        String guildName = "";
+
+        try {
+            Scanner scanner = new Scanner(guildFile);
+
+            if (scanner.hasNextLine()) {
+                guildName = scanner.nextLine();
+            }
+
+            scanner.close();
+        } catch (java.io.IOException ex) {
+            return "Make sure to set your guild with /setguild <guildname>.";
+        }
+
+        List<WynncraftGuild> allyGuilds = new ArrayList<WynncraftGuild>();
+
+        try {
+            if (allyFile.exists()) {
+                Scanner scanner = new Scanner(allyFile);
+
+                while (scanner.hasNextLine()) {
+                    WynncraftGuild allyGuild = wynnAPI.v1().guildStats(scanner.nextLine()).run();
+
+                    allyGuilds.add(allyGuild);
+
+                    System.out.println("Added Ally guild " + allyGuild.getName());
+                }
+
+                scanner.close();
+            }
+        } catch (java.io.IOException ex) {
+            return "Make sure to set your guild allies with /addally <guildname>.";
+        }
+
+        WynncraftGuild mainGuild = wynnAPI.v1().guildStats(guildName).run();
 
         boolean verified = false;
-		boolean isAlly = false;
+        boolean isAlly = false;
 
         for (int i = 0; i < mainGuild.getMembers().length; i++) {
             if (mainGuild.getMembers()[i].getName().equalsIgnoreCase(playerName)) {
@@ -543,18 +649,18 @@ public class EventListener extends ListenerAdapter {
         }
 
         if (!verified) {
-            for (int i = 0; i < allyGuilds.length; i++) {
-                for (int j = 0; j < allyGuilds[i].getMembers().length; j++) {
-                    if (allyGuilds[i].getMembers()[j].getName().equalsIgnoreCase(playerName)) {
+            for (int i = 0; i < allyGuilds.size(); i++) {
+                for (int j = 0; j < allyGuilds.get(i).getMembers().length; j++) {
+                    if (allyGuilds.get(i).getMembers()[j].getName().equalsIgnoreCase(playerName)) {
                         verified = true;
-						isAlly = true;
+                        isAlly = true;
 
                         guild.removeRoleFromMember(member, memberOfRole).queue();
                         guild.removeRoleFromMember(member, unverifiedRole).queue();
 
-                        String uuid = allyGuilds[i].getMembers()[j].getUuid();
+                        String uuid = allyGuilds.get(i).getMembers()[j].getUuid();
 
-                        switch (allyGuilds[i].getMembers()[j].getRank()) {
+                        switch (allyGuilds.get(i).getMembers()[j].getRank()) {
                             case OWNER -> {
                                 if (!hasRole(member, allyOwnerRole)) {
                                     System.out.println(member.getUser().getName() + " is the Owner of an Ally Guild.");
@@ -676,6 +782,74 @@ public class EventListener extends ListenerAdapter {
                 return "Verified " + member.getUser().getName() + " as Guild member " + playerName + "(Could not change nickname)";
             }
         }
+    }
+
+    private String setGuild(String guildName, Guild guild) {
+        try {
+            Files.createDirectories(Path.of("/home/opc/CC-117/" + guild.getId()));
+
+            File guildFile = new File("/home/opc/CC-117/" + guild.getId() + "/" + "guild.txt");
+
+            if (!guildFile.exists()) {
+                guildFile.createNewFile();
+            }
+
+            FileWriter guildFileWriter = new FileWriter("/home/opc/CC-117/" + guild.getId() + "/" + "guild.txt");
+            guildFileWriter.write(guildName);
+            guildFileWriter.close();
+        } catch (java.io.IOException ex) {
+            return ex.toString();
+        }
+
+        return "Set " + guildName + " as Guild.";
+    }
+
+    private String addAlly(String guildName, Guild guild) {
+        try {
+            Files.createDirectories(Path.of("/home/opc/CC-117/" + guild.getId()));
+
+            File allyFile = new File("/home/opc/CC-117/" + guild.getId() + "/" + "allies.txt");
+
+            if (!allyFile.exists()) {
+                allyFile.createNewFile();
+            }
+
+            Files.write(Path.of("/home/opc/CC-117/" + guild.getId() + "/" + "allies.txt"), (guildName + "\n").getBytes(), StandardOpenOption.APPEND);
+        } catch (java.io.IOException ex) {
+            return ex.toString();
+        }
+
+        return "Added " + guildName + " as an Ally.";
+    }
+
+    private String removeAlly(String guildName, Guild guild) {
+        File allyFile = new File("/home/opc/CC-117/" + guild.getId() + "/" + "allies.txt");
+        File tempFile = new File("/home/opc/CC-117/" + guild.getId() + "/" + "temp.txt");
+
+        try {
+            Scanner scanner = new Scanner(allyFile);
+            String currentLine;
+
+            tempFile.createNewFile();
+
+            while (scanner.hasNextLine()) {
+                currentLine = scanner.nextLine();
+                if (!currentLine.equals(guildName)) {
+                    Files.write(Path.of("/home/opc/CC-117/" + guild.getId() + "/" + "temp.txt"), (currentLine + "\n").getBytes(), StandardOpenOption.APPEND);
+                }
+            }
+
+            scanner.close();
+
+            allyFile.delete();
+
+            tempFile.renameTo(allyFile);
+
+        } catch (java.io.IOException ex) {
+            return "No allies found: " + ex;
+        }
+
+        return "Removed " + guildName + " as an Ally.";
     }
 
     private boolean hasRole(Member member, Role role) {
