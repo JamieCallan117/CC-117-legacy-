@@ -478,6 +478,29 @@ public class EventListener extends ListenerAdapter {
             }
         }
 
+        for (Member member : discordMembers) {
+            if(!hasRole(member, unverifiedRole)) {
+                guild.addRoleToMember(member, unverifiedRole).queue();
+                guild.removeRoleFromMember(member, vipRole).queue();
+                guild.removeRoleFromMember(member, vipPlusRole).queue();
+                guild.removeRoleFromMember(member, heroRole).queue();
+                guild.removeRoleFromMember(member, championRole).queue();
+                guild.removeRoleFromMember(member, vetRole).queue();
+                guild.removeRoleFromMember(member, recruitRole).queue();
+                guild.removeRoleFromMember(member, recruiterRole).queue();
+                guild.removeRoleFromMember(member, captainRole).queue();
+                guild.removeRoleFromMember(member, strategistRole).queue();
+                guild.removeRoleFromMember(member, chiefRole).queue();
+                guild.removeRoleFromMember(member, ownerRole).queue();
+                guild.removeRoleFromMember(member, memberOfRole).queue();
+                guild.removeRoleFromMember(member, allyRole).queue();
+                guild.removeRoleFromMember(member, allyOwnerRole).queue();
+                rolesUpdated += 1;
+
+                System.out.println(member.getUser().getName() + " unverified.");
+            }
+        }
+
         return "Updated roles for " + rolesUpdated + " members!";
     }
 
