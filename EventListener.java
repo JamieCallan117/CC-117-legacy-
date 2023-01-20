@@ -200,10 +200,13 @@ public class EventListener extends ListenerAdapter {
                     }
 
                     if (mainGuild.getMembers()[i].getName().equalsIgnoreCase(member.getUser().getName()) || mainGuild.getMembers()[i].getName().toLowerCase().equalsIgnoreCase(nick)) {
-                        guild.addRoleToMember(member, memberOfRole).queue();
-                        guild.removeRoleFromMember(member, unverifiedRole).queue();
-                        guild.removeRoleFromMember(member, allyRole).queue();
-                        guild.removeRoleFromMember(member, allyOwnerRole).queue();
+                        List<Role> rolesToAdd = new ArrayList<>();
+                        List<Role> rolesToRemove = new ArrayList<>();
+
+                        rolesToAdd.add(memberOfRole);
+                        rolesToRemove.add(unverifiedRole);
+                        rolesToRemove.add(allyRole);
+                        rolesToRemove.add(allyOwnerRole);
 
                         try {
                             member.modifyNickname(mainGuild.getMembers()[i].getName()).queue();
@@ -219,72 +222,72 @@ public class EventListener extends ListenerAdapter {
                             case OWNER -> {
                                 if (!hasRole(member, ownerRole)) {
                                     System.out.println(member.getUser().getName() + " is the Owner of the Guild.");
-                                    guild.addRoleToMember(member, ownerRole).queue();
-                                    guild.removeRoleFromMember(member, chiefRole).queue();
-                                    guild.removeRoleFromMember(member, strategistRole).queue();
-                                    guild.removeRoleFromMember(member, captainRole).queue();
-                                    guild.removeRoleFromMember(member, recruiterRole).queue();
-                                    guild.removeRoleFromMember(member, recruitRole).queue();
+                                    rolesToAdd.add(ownerRole);
+                                    rolesToRemove.add(chiefRole);
+                                    rolesToRemove.add(strategistRole);
+                                    rolesToRemove.add(captainRole);
+                                    rolesToRemove.add(recruiterRole);
+                                    rolesToRemove.add(recruitRole);
                                     hasUpdated = true;
                                 }
                             }
                             case CHIEF -> {
                                 if (!hasRole(member, chiefRole)) {
                                     System.out.println(member.getUser().getName() + " is a Chief of the Guild.");
-                                    guild.addRoleToMember(member, chiefRole).queue();
-                                    guild.removeRoleFromMember(member, ownerRole).queue();
-                                    guild.removeRoleFromMember(member, strategistRole).queue();
-                                    guild.removeRoleFromMember(member, captainRole).queue();
-                                    guild.removeRoleFromMember(member, recruiterRole).queue();
-                                    guild.removeRoleFromMember(member, recruitRole).queue();
+                                    rolesToAdd.add(chiefRole);
+                                    rolesToRemove.add(ownerRole);
+                                    rolesToRemove.add(strategistRole);
+                                    rolesToRemove.add(captainRole);
+                                    rolesToRemove.add(recruiterRole);
+                                    rolesToRemove.add(recruitRole);
                                     hasUpdated = true;
                                 }
                             }
                             case STRATEGIST -> {
                                 if (!hasRole(member, strategistRole)) {
                                     System.out.println(member.getUser().getName() + " is a Strategist of the Guild.");
-                                    guild.addRoleToMember(member, strategistRole).queue();
-                                    guild.removeRoleFromMember(member, ownerRole).queue();
-                                    guild.removeRoleFromMember(member, chiefRole).queue();
-                                    guild.removeRoleFromMember(member, captainRole).queue();
-                                    guild.removeRoleFromMember(member, recruiterRole).queue();
-                                    guild.removeRoleFromMember(member, recruitRole).queue();
+                                    rolesToAdd.add(strategistRole);
+                                    rolesToRemove.add(ownerRole);
+                                    rolesToRemove.add(chiefRole);
+                                    rolesToRemove.add(captainRole);
+                                    rolesToRemove.add(recruiterRole);
+                                    rolesToRemove.add(recruitRole);
                                     hasUpdated = true;
                                 }
                             }
                             case CAPTAIN -> {
                                 if (!hasRole(member, captainRole)) {
                                     System.out.println(member.getUser().getName() + " is a Captain of the Guild.");
-                                    guild.addRoleToMember(member, captainRole).queue();
-                                    guild.removeRoleFromMember(member, ownerRole).queue();
-                                    guild.removeRoleFromMember(member, chiefRole).queue();
-                                    guild.removeRoleFromMember(member, strategistRole).queue();
-                                    guild.removeRoleFromMember(member, recruiterRole).queue();
-                                    guild.removeRoleFromMember(member, recruitRole).queue();
+                                    rolesToAdd.add(captainRole);
+                                    rolesToRemove.add(ownerRole);
+                                    rolesToRemove.add(chiefRole);
+                                    rolesToRemove.add(strategistRole);
+                                    rolesToRemove.add(recruiterRole);
+                                    rolesToRemove.add(recruitRole);
                                     hasUpdated = true;
                                 }
                             }
                             case RECRUITER -> {
                                 if (!hasRole(member, recruiterRole)) {
                                     System.out.println(member.getUser().getName() + " is a Recruiter of the Guild.");
-                                    guild.addRoleToMember(member, recruiterRole).queue();
-                                    guild.removeRoleFromMember(member, ownerRole).queue();
-                                    guild.removeRoleFromMember(member, chiefRole).queue();
-                                    guild.removeRoleFromMember(member, strategistRole).queue();
-                                    guild.removeRoleFromMember(member, captainRole).queue();
-                                    guild.removeRoleFromMember(member, recruitRole).queue();
+                                    rolesToAdd.add(recruiterRole);
+                                    rolesToRemove.add(ownerRole);
+                                    rolesToRemove.add(chiefRole);
+                                    rolesToRemove.add(strategistRole);
+                                    rolesToRemove.add(captainRole);
+                                    rolesToRemove.add(recruitRole);
                                     hasUpdated = true;
                                 }
                             }
                             case RECRUIT -> {
                                 if (!hasRole(member, recruitRole)) {
                                     System.out.println(member.getUser().getName() + " is a Recruit of the Guild.");
-                                    guild.addRoleToMember(member, recruitRole).queue();
-                                    guild.removeRoleFromMember(member, ownerRole).queue();
-                                    guild.removeRoleFromMember(member, chiefRole).queue();
-                                    guild.removeRoleFromMember(member, strategistRole).queue();
-                                    guild.removeRoleFromMember(member, captainRole).queue();
-                                    guild.removeRoleFromMember(member, recruiterRole).queue();
+                                    rolesToAdd.add(recruitRole);
+                                    rolesToRemove.add(ownerRole);
+                                    rolesToRemove.add(chiefRole);
+                                    rolesToRemove.add(strategistRole);
+                                    rolesToRemove.add(captainRole);
+                                    rolesToRemove.add(recruiterRole);
                                     hasUpdated = true;
                                 }
                             }
@@ -296,40 +299,40 @@ public class EventListener extends ListenerAdapter {
                             case CHAMPION -> {
                                 if (!hasRole(member, championRole)) {
                                     System.out.println(member.getUser().getName() + " is a CHAMPION.");
-                                    guild.addRoleToMember(member, championRole).queue();
-                                    guild.removeRoleFromMember(member, heroRole).queue();
-                                    guild.removeRoleFromMember(member, vipPlusRole).queue();
-                                    guild.removeRoleFromMember(member, vipRole).queue();
+                                    rolesToAdd.add(championRole);
+                                    rolesToRemove.add(heroRole);
+                                    rolesToRemove.add(vipPlusRole);
+                                    rolesToRemove.add(vipRole);
                                     hasUpdated = true;
                                 }
                             }
                             case HERO -> {
                                 if (!hasRole(member, heroRole)) {
                                     System.out.println(member.getUser().getName() + " is a HERO.");
-                                    guild.addRoleToMember(member, heroRole).queue();
-                                    guild.removeRoleFromMember(member, championRole).queue();
-                                    guild.removeRoleFromMember(member, vipPlusRole).queue();
-                                    guild.removeRoleFromMember(member, vipRole).queue();
+                                    rolesToAdd.add(heroRole);
+                                    rolesToRemove.add(championRole);
+                                    rolesToRemove.add(vipPlusRole);
+                                    rolesToRemove.add(vipRole);
                                     hasUpdated = true;
                                 }
                             }
                             case VIPPLUS -> {
                                 if (!hasRole(member, vipPlusRole)) {
                                     System.out.println(member.getUser().getName() + " is a VIP+.");
-                                    guild.addRoleToMember(member, vipPlusRole).queue();
-                                    guild.removeRoleFromMember(member, championRole).queue();
-                                    guild.removeRoleFromMember(member, heroRole).queue();
-                                    guild.removeRoleFromMember(member, vipRole).queue();
+                                    rolesToAdd.add(vipPlusRole);
+                                    rolesToRemove.add(championRole);
+                                    rolesToRemove.add(heroRole);
+                                    rolesToRemove.add(vipRole);
                                     hasUpdated = true;
                                 }
                             }
                             case VIP -> {
                                 if (!hasRole(member, vipRole)) {
                                     System.out.println(member.getUser().getName() + " is a VIP.");
-                                    guild.addRoleToMember(member, vipRole).queue();
-                                    guild.removeRoleFromMember(member, championRole).queue();
-                                    guild.removeRoleFromMember(member, heroRole).queue();
-                                    guild.removeRoleFromMember(member, vipPlusRole).queue();
+                                    rolesToAdd.add(vipRole);
+                                    rolesToRemove.add(championRole);
+                                    rolesToRemove.add(heroRole);
+                                    rolesToRemove.add(vipPlusRole);
                                     hasUpdated = true;
                                 }
                             }
@@ -338,7 +341,7 @@ public class EventListener extends ListenerAdapter {
                         if (player.getMeta().isVeteran()) {
                             if (!hasRole(member, vetRole)) {
                                 System.out.println(member.getUser().getName() + " is a Vet.");
-                                guild.addRoleToMember(member, vetRole).queue();
+                                rolesToAdd.add(vetRole);
                                 hasUpdated = true;
                             }
                         }
@@ -346,6 +349,8 @@ public class EventListener extends ListenerAdapter {
                         if (hasUpdated) {
                             rolesUpdated += 1;
                         }
+
+                        guild.modifyMemberRoles(member, rolesToAdd, rolesToRemove).queue();
 
                         discordMembers.remove(member);
 
@@ -366,8 +371,10 @@ public class EventListener extends ListenerAdapter {
                         }
 
                         if (allyGuilds.get(i).getMembers()[j].getName().equalsIgnoreCase(member.getUser().getName()) || allyGuilds.get(i).getMembers()[j].getName().toLowerCase().equalsIgnoreCase(nick)) {
-                            guild.removeRoleFromMember(member, memberOfRole).queue();
-                            guild.removeRoleFromMember(member, unverifiedRole).queue();
+                            List<Role> rolesToAdd = new ArrayList<>();
+                            List<Role> rolesToRemove = new ArrayList<>();
+                            rolesToRemove.add(memberOfRole);
+                            rolesToRemove.add(unverifiedRole);
 
                             try {
                                 member.modifyNickname(allyGuilds.get(i).getMembers()[j].getName()).queue();
@@ -383,30 +390,30 @@ public class EventListener extends ListenerAdapter {
                                 case OWNER -> {
                                     if (!hasRole(member, allyOwnerRole)) {
                                         System.out.println(member.getUser().getName() + " is the Owner of an Ally Guild.");
-                                        guild.addRoleToMember(member, allyOwnerRole).queue();
-                                        guild.removeRoleFromMember(member, memberOfRole).queue();
-                                        guild.removeRoleFromMember(member, allyRole).queue();
-                                        guild.removeRoleFromMember(member, ownerRole).queue();
-                                        guild.removeRoleFromMember(member, chiefRole).queue();
-                                        guild.removeRoleFromMember(member, strategistRole).queue();
-                                        guild.removeRoleFromMember(member, captainRole).queue();
-                                        guild.removeRoleFromMember(member, recruiterRole).queue();
-                                        guild.removeRoleFromMember(member, recruitRole).queue();
+                                        rolesToAdd.add(allyOwnerRole);
+                                        rolesToRemove.add(memberOfRole);
+                                        rolesToRemove.add(allyRole);
+                                        rolesToRemove.add(ownerRole);
+                                        rolesToRemove.add(chiefRole);
+                                        rolesToRemove.add(strategistRole);
+                                        rolesToRemove.add(captainRole);
+                                        rolesToRemove.add(recruiterRole);
+                                        rolesToRemove.add(recruitRole);
                                         hasUpdated = true;
                                     }
                                 }
                                 case CHIEF, STRATEGIST, CAPTAIN, RECRUITER, RECRUIT -> {
                                     if (!hasRole(member, allyRole)) {
                                         System.out.println(member.getUser().getName() + " is a member of an Ally Guild.");
-                                        guild.addRoleToMember(member, allyRole).queue();
-                                        guild.removeRoleFromMember(member, memberOfRole).queue();
-                                        guild.removeRoleFromMember(member, allyOwnerRole).queue();
-                                        guild.removeRoleFromMember(member, ownerRole).queue();
-                                        guild.removeRoleFromMember(member, chiefRole).queue();
-                                        guild.removeRoleFromMember(member, strategistRole).queue();
-                                        guild.removeRoleFromMember(member, captainRole).queue();
-                                        guild.removeRoleFromMember(member, recruiterRole).queue();
-                                        guild.removeRoleFromMember(member, recruitRole).queue();
+                                        rolesToAdd.add(allyRole);
+                                        rolesToRemove.add(memberOfRole);
+                                        rolesToRemove.add(allyOwnerRole);
+                                        rolesToRemove.add(ownerRole);
+                                        rolesToRemove.add(chiefRole);
+                                        rolesToRemove.add(strategistRole);
+                                        rolesToRemove.add(captainRole);
+                                        rolesToRemove.add(recruiterRole);
+                                        rolesToRemove.add(recruitRole);
                                         hasUpdated = true;
                                     }
                                 }
@@ -418,40 +425,40 @@ public class EventListener extends ListenerAdapter {
                                 case CHAMPION -> {
                                     if (!hasRole(member, championRole)) {
                                         System.out.println(member.getUser().getName() + " is a CHAMPION.");
-                                        guild.addRoleToMember(member, championRole).queue();
-                                        guild.removeRoleFromMember(member, heroRole).queue();
-                                        guild.removeRoleFromMember(member, vipPlusRole).queue();
-                                        guild.removeRoleFromMember(member, vipRole).queue();
+                                        rolesToAdd.add(championRole);
+                                        rolesToRemove.add(heroRole);
+                                        rolesToRemove.add(vipPlusRole);
+                                        rolesToRemove.add(vipRole);
                                         hasUpdated = true;
                                     }
                                 }
                                 case HERO -> {
                                     if (!hasRole(member, heroRole)) {
                                         System.out.println(member.getUser().getName() + " is a HERO.");
-                                        guild.addRoleToMember(member, heroRole).queue();
-                                        guild.removeRoleFromMember(member, championRole).queue();
-                                        guild.removeRoleFromMember(member, vipPlusRole).queue();
-                                        guild.removeRoleFromMember(member, vipRole).queue();
+                                        rolesToAdd.add(heroRole);
+                                        rolesToRemove.add(championRole);
+                                        rolesToRemove.add(vipPlusRole);
+                                        rolesToRemove.add(vipRole);
                                         hasUpdated = true;
                                     }
                                 }
                                 case VIPPLUS -> {
                                     if (!hasRole(member, vipPlusRole)) {
                                         System.out.println(member.getUser().getName() + " is a VIP+.");
-                                        guild.addRoleToMember(member, vipPlusRole).queue();
-                                        guild.removeRoleFromMember(member, championRole).queue();
-                                        guild.removeRoleFromMember(member, heroRole).queue();
-                                        guild.removeRoleFromMember(member, vipRole).queue();
+                                        rolesToAdd.add(vipPlusRole);
+                                        rolesToRemove.add(championRole);
+                                        rolesToRemove.add(heroRole);
+                                        rolesToRemove.add(vipRole);
                                         hasUpdated = true;
                                     }
                                 }
                                 case VIP -> {
                                     if (!hasRole(member, vipRole)) {
                                         System.out.println(member.getUser().getName() + " is a VIP.");
-                                        guild.addRoleToMember(member, vipRole).queue();
-                                        guild.removeRoleFromMember(member, championRole).queue();
-                                        guild.removeRoleFromMember(member, heroRole).queue();
-                                        guild.removeRoleFromMember(member, vipPlusRole).queue();
+                                        rolesToAdd.add(vipRole);
+                                        rolesToRemove.add(championRole);
+                                        rolesToRemove.add(heroRole);
+                                        rolesToRemove.add(vipPlusRole);
                                         hasUpdated = true;
                                     }
                                 }
@@ -460,7 +467,7 @@ public class EventListener extends ListenerAdapter {
                             if (player.getMeta().isVeteran()) {
                                 if (!hasRole(member, vetRole)) {
                                     System.out.println(member.getUser().getName() + " is a Vet.");
-                                    guild.addRoleToMember(member, vetRole).queue();
+                                    rolesToAdd.add(vetRole);
                                     hasUpdated = true;
                                 }
                             }
@@ -471,6 +478,8 @@ public class EventListener extends ListenerAdapter {
 
                             discordMembers.remove(member);
 
+                            guild.modifyMemberRoles(member, rolesToAdd, rolesToRemove).queue();
+
                             break;
                         }
                     }
@@ -480,22 +489,26 @@ public class EventListener extends ListenerAdapter {
 
         for (Member member : discordMembers) {
             if(!hasRole(member, unverifiedRole)) {
-                guild.addRoleToMember(member, unverifiedRole).queue();
-                guild.removeRoleFromMember(member, vipRole).queue();
-                guild.removeRoleFromMember(member, vipPlusRole).queue();
-                guild.removeRoleFromMember(member, heroRole).queue();
-                guild.removeRoleFromMember(member, championRole).queue();
-                guild.removeRoleFromMember(member, vetRole).queue();
-                guild.removeRoleFromMember(member, recruitRole).queue();
-                guild.removeRoleFromMember(member, recruiterRole).queue();
-                guild.removeRoleFromMember(member, captainRole).queue();
-                guild.removeRoleFromMember(member, strategistRole).queue();
-                guild.removeRoleFromMember(member, chiefRole).queue();
-                guild.removeRoleFromMember(member, ownerRole).queue();
-                guild.removeRoleFromMember(member, memberOfRole).queue();
-                guild.removeRoleFromMember(member, allyRole).queue();
-                guild.removeRoleFromMember(member, allyOwnerRole).queue();
+                List<Role> rolesToAdd = new ArrayList<>();
+                List<Role> rolesToRemove = new ArrayList<>();
+                rolesToAdd.add(unverifiedRole);
+                rolesToRemove.add(vipRole);
+                rolesToRemove.add(vipPlusRole);
+                rolesToRemove.add(heroRole);
+                rolesToRemove.add(championRole);
+                rolesToRemove.add(vetRole);
+                rolesToRemove.add(recruitRole);
+                rolesToRemove.add(recruiterRole);
+                rolesToRemove.add(captainRole);
+                rolesToRemove.add(strategistRole);
+                rolesToRemove.add(chiefRole);
+                rolesToRemove.add(ownerRole);
+                rolesToRemove.add(memberOfRole);
+                rolesToRemove.add(allyRole);
+                rolesToRemove.add(allyOwnerRole);
                 rolesUpdated += 1;
+
+                guild.modifyMemberRoles(member, rolesToAdd, rolesToRemove).queue();
 
                 System.out.println(member.getUser().getName() + " unverified.");
             }
@@ -549,12 +562,14 @@ public class EventListener extends ListenerAdapter {
 
         for (int i = 0; i < mainGuild.getMembers().length; i++) {
             if (mainGuild.getMembers()[i].getName().equalsIgnoreCase(playerName)) {
+                List<Role> rolesToAdd = new ArrayList<>();
+                List<Role> rolesToRemove = new ArrayList<>();
                 verified = true;
 
-                guild.addRoleToMember(member, memberOfRole).queue();
-                guild.removeRoleFromMember(member, unverifiedRole).queue();
-                guild.removeRoleFromMember(member, allyRole).queue();
-                guild.removeRoleFromMember(member, allyOwnerRole).queue();
+                rolesToAdd.add(memberOfRole);
+                rolesToRemove.add(unverifiedRole);
+                rolesToRemove.add(allyRole);
+                rolesToRemove.add(allyOwnerRole);
 
                 String uuid = mainGuild.getMembers()[i].getUuid();
 
@@ -562,67 +577,67 @@ public class EventListener extends ListenerAdapter {
                     case OWNER -> {
                         if (!hasRole(member, ownerRole)) {
                             System.out.println(member.getUser().getName() + " is the Owner of the Guild.");
-                            guild.addRoleToMember(member, ownerRole).queue();
-                            guild.removeRoleFromMember(member, chiefRole).queue();
-                            guild.removeRoleFromMember(member, strategistRole).queue();
-                            guild.removeRoleFromMember(member, captainRole).queue();
-                            guild.removeRoleFromMember(member, recruiterRole).queue();
-                            guild.removeRoleFromMember(member, recruitRole).queue();
+                            rolesToAdd.add(ownerRole);
+                            rolesToRemove.add(chiefRole);
+                            rolesToRemove.add(strategistRole);
+                            rolesToRemove.add(captainRole);
+                            rolesToRemove.add(recruiterRole);
+                            rolesToRemove.add(recruitRole);
                         }
                     }
                     case CHIEF -> {
                         if (!hasRole(member, chiefRole)) {
                             System.out.println(member.getUser().getName() + " is a Chief of the Guild.");
-                            guild.addRoleToMember(member, chiefRole).queue();
-                            guild.removeRoleFromMember(member, ownerRole).queue();
-                            guild.removeRoleFromMember(member, strategistRole).queue();
-                            guild.removeRoleFromMember(member, captainRole).queue();
-                            guild.removeRoleFromMember(member, recruiterRole).queue();
-                            guild.removeRoleFromMember(member, recruitRole).queue();
+                            rolesToAdd.add(chiefRole);
+                            rolesToRemove.add(ownerRole);
+                            rolesToRemove.add(strategistRole);
+                            rolesToRemove.add(captainRole);
+                            rolesToRemove.add(recruiterRole);
+                            rolesToRemove.add(recruitRole);
                         }
                     }
                     case STRATEGIST -> {
                         if (!hasRole(member, strategistRole)) {
                             System.out.println(member.getUser().getName() + " is a Strategist of the Guild.");
-                            guild.addRoleToMember(member, strategistRole).queue();
-                            guild.removeRoleFromMember(member, ownerRole).queue();
-                            guild.removeRoleFromMember(member, chiefRole).queue();
-                            guild.removeRoleFromMember(member, captainRole).queue();
-                            guild.removeRoleFromMember(member, recruiterRole).queue();
-                            guild.removeRoleFromMember(member, recruitRole).queue();
+                            rolesToAdd.add(strategistRole);
+                            rolesToRemove.add(ownerRole);
+                            rolesToRemove.add(chiefRole);
+                            rolesToRemove.add(captainRole);
+                            rolesToRemove.add(recruiterRole);
+                            rolesToRemove.add(recruitRole);
                         }
                     }
                     case CAPTAIN -> {
                         if (!hasRole(member, captainRole)) {
                             System.out.println(member.getUser().getName() + " is a Captain of the Guild.");
-                            guild.addRoleToMember(member, captainRole).queue();
-                            guild.removeRoleFromMember(member, ownerRole).queue();
-                            guild.removeRoleFromMember(member, chiefRole).queue();
-                            guild.removeRoleFromMember(member, strategistRole).queue();
-                            guild.removeRoleFromMember(member, recruiterRole).queue();
-                            guild.removeRoleFromMember(member, recruitRole).queue();
+                            rolesToAdd.add(captainRole);
+                            rolesToRemove.add(ownerRole);
+                            rolesToRemove.add(chiefRole);
+                            rolesToRemove.add(strategistRole);
+                            rolesToRemove.add(recruiterRole);
+                            rolesToRemove.add(recruitRole);
                         }
                     }
                     case RECRUITER -> {
                         if (!hasRole(member, recruiterRole)) {
                             System.out.println(member.getUser().getName() + " is a Recruiter of the Guild.");
-                            guild.addRoleToMember(member, recruiterRole).queue();
-                            guild.removeRoleFromMember(member, ownerRole).queue();
-                            guild.removeRoleFromMember(member, chiefRole).queue();
-                            guild.removeRoleFromMember(member, strategistRole).queue();
-                            guild.removeRoleFromMember(member, captainRole).queue();
-                            guild.removeRoleFromMember(member, recruitRole).queue();
+                            rolesToAdd.add(recruiterRole);
+                            rolesToRemove.add(ownerRole);
+                            rolesToRemove.add(chiefRole);
+                            rolesToRemove.add(strategistRole);
+                            rolesToRemove.add(captainRole);
+                            rolesToRemove.add(recruitRole);
                         }
                     }
                     case RECRUIT -> {
                         if (!hasRole(member, recruitRole)) {
                             System.out.println(member.getUser().getName() + " is a Recruit of the Guild.");
-                            guild.addRoleToMember(member, recruitRole).queue();
-                            guild.removeRoleFromMember(member, ownerRole).queue();
-                            guild.removeRoleFromMember(member, chiefRole).queue();
-                            guild.removeRoleFromMember(member, strategistRole).queue();
-                            guild.removeRoleFromMember(member, captainRole).queue();
-                            guild.removeRoleFromMember(member, recruiterRole).queue();
+                            rolesToAdd.add(recruitRole);
+                            rolesToRemove.add(ownerRole);
+                            rolesToRemove.add(chiefRole);
+                            rolesToRemove.add(strategistRole);
+                            rolesToRemove.add(captainRole);
+                            rolesToRemove.add(recruiterRole);
                         }
                     }
                 }
@@ -633,37 +648,37 @@ public class EventListener extends ListenerAdapter {
                     case CHAMPION -> {
                         if (!hasRole(member, championRole)) {
                             System.out.println(member.getUser().getName() + " is a CHAMPION.");
-                            guild.addRoleToMember(member, championRole).queue();
-                            guild.removeRoleFromMember(member, heroRole).queue();
-                            guild.removeRoleFromMember(member, vipPlusRole).queue();
-                            guild.removeRoleFromMember(member, vipRole).queue();
+                            rolesToAdd.add(championRole);
+                            rolesToRemove.add(heroRole);
+                            rolesToRemove.add(vipPlusRole);
+                            rolesToRemove.add(vipRole);
                         }
                     }
                     case HERO -> {
                         if (!hasRole(member, heroRole)) {
                             System.out.println(member.getUser().getName() + " is a HERO.");
-                            guild.addRoleToMember(member, heroRole).queue();
-                            guild.removeRoleFromMember(member, championRole).queue();
-                            guild.removeRoleFromMember(member, vipPlusRole).queue();
-                            guild.removeRoleFromMember(member, vipRole).queue();
+                            rolesToAdd.add(heroRole);
+                            rolesToRemove.add(championRole);
+                            rolesToRemove.add(vipPlusRole);
+                            rolesToRemove.add(vipRole);
                         }
                     }
                     case VIPPLUS -> {
                         if (!hasRole(member, vipPlusRole)) {
                             System.out.println(member.getUser().getName() + " is a VIP+.");
-                            guild.addRoleToMember(member, vipPlusRole).queue();
-                            guild.removeRoleFromMember(member, championRole).queue();
-                            guild.removeRoleFromMember(member, heroRole).queue();
-                            guild.removeRoleFromMember(member, vipRole).queue();
+                            rolesToAdd.add(vipPlusRole);
+                            rolesToRemove.add(championRole);
+                            rolesToRemove.add(heroRole);
+                            rolesToRemove.add(vipRole);
                         }
                     }
                     case VIP -> {
                         if (!hasRole(member, vipRole)) {
                             System.out.println(member.getUser().getName() + " is a VIP.");
-                            guild.addRoleToMember(member, vipRole).queue();
-                            guild.removeRoleFromMember(member, championRole).queue();
-                            guild.removeRoleFromMember(member, heroRole).queue();
-                            guild.removeRoleFromMember(member, vipPlusRole).queue();
+                            rolesToAdd.add(vipRole);
+                            rolesToRemove.add(championRole);
+                            rolesToRemove.add(heroRole);
+                            rolesToRemove.add(vipPlusRole);
                         }
                     }
                 }
@@ -671,7 +686,7 @@ public class EventListener extends ListenerAdapter {
                 if (player.getMeta().isVeteran()) {
                     if (!hasRole(member, vetRole)) {
                         System.out.println(member.getUser().getName() + " is a Vet.");
-                        guild.addRoleToMember(member, vetRole).queue();
+                        rolesToAdd.add(vetRole);
                     }
                 }
 
@@ -683,6 +698,8 @@ public class EventListener extends ListenerAdapter {
             for (int i = 0; i < allyGuilds.size(); i++) {
                 for (int j = 0; j < allyGuilds.get(i).getMembers().length; j++) {
                     if (allyGuilds.get(i).getMembers()[j].getName().equalsIgnoreCase(playerName)) {
+                        List<Role> rolesToAdd = new ArrayList<>();
+                        List<Role> rolesToRemove = new ArrayList<>();
                         verified = true;
                         isAlly = true;
 
@@ -695,29 +712,29 @@ public class EventListener extends ListenerAdapter {
                             case OWNER -> {
                                 if (!hasRole(member, allyOwnerRole)) {
                                     System.out.println(member.getUser().getName() + " is the Owner of an Ally Guild.");
-                                    guild.addRoleToMember(member, allyOwnerRole).queue();
-                                    guild.removeRoleFromMember(member, memberOfRole).queue();
-                                    guild.removeRoleFromMember(member, allyRole).queue();
-                                    guild.removeRoleFromMember(member, ownerRole).queue();
-                                    guild.removeRoleFromMember(member, chiefRole).queue();
-                                    guild.removeRoleFromMember(member, strategistRole).queue();
-                                    guild.removeRoleFromMember(member, captainRole).queue();
-                                    guild.removeRoleFromMember(member, recruiterRole).queue();
-                                    guild.removeRoleFromMember(member, recruitRole).queue();
+                                    rolesToAdd.add(allyOwnerRole);
+                                    rolesToRemove.add(memberOfRole);
+                                    rolesToRemove.add(allyRole);
+                                    rolesToRemove.add(ownerRole);
+                                    rolesToRemove.add(chiefRole);
+                                    rolesToRemove.add(strategistRole);
+                                    rolesToRemove.add(captainRole);
+                                    rolesToRemove.add(recruiterRole);
+                                    rolesToRemove.add(recruitRole);
                                 }
                             }
                             case CHIEF, STRATEGIST, CAPTAIN, RECRUITER, RECRUIT -> {
                                 if (!hasRole(member, allyRole)) {
                                     System.out.println(member.getUser().getName() + " is a member of an Ally Guild.");
-                                    guild.addRoleToMember(member, allyRole).queue();
-                                    guild.removeRoleFromMember(member, memberOfRole).queue();
-                                    guild.removeRoleFromMember(member, allyOwnerRole).queue();
-                                    guild.removeRoleFromMember(member, ownerRole).queue();
-                                    guild.removeRoleFromMember(member, chiefRole).queue();
-                                    guild.removeRoleFromMember(member, strategistRole).queue();
-                                    guild.removeRoleFromMember(member, captainRole).queue();
-                                    guild.removeRoleFromMember(member, recruiterRole).queue();
-                                    guild.removeRoleFromMember(member, recruitRole).queue();
+                                    rolesToAdd.add(allyRole);
+                                    rolesToRemove.add(memberOfRole);
+                                    rolesToRemove.add(allyOwnerRole);
+                                    rolesToRemove.add(ownerRole);
+                                    rolesToRemove.add(chiefRole);
+                                    rolesToRemove.add(strategistRole);
+                                    rolesToRemove.add(captainRole);
+                                    rolesToRemove.add(recruiterRole);
+                                    rolesToRemove.add(recruitRole);
                                 }
                             }
                         }
@@ -728,37 +745,37 @@ public class EventListener extends ListenerAdapter {
                             case CHAMPION -> {
                                 if (!hasRole(member, championRole)) {
                                     System.out.println(member.getUser().getName() + " is a CHAMPION.");
-                                    guild.addRoleToMember(member, championRole).queue();
-                                    guild.removeRoleFromMember(member, heroRole).queue();
-                                    guild.removeRoleFromMember(member, vipPlusRole).queue();
-                                    guild.removeRoleFromMember(member, vipRole).queue();
+                                    rolesToAdd.add(championRole);
+                                    rolesToRemove.add(heroRole);
+                                    rolesToRemove.add(vipPlusRole);
+                                    rolesToRemove.add(vipRole);
                                 }
                             }
                             case HERO -> {
                                 if (!hasRole(member, heroRole)) {
                                     System.out.println(member.getUser().getName() + " is a HERO.");
-                                    guild.addRoleToMember(member, heroRole).queue();
-                                    guild.removeRoleFromMember(member, championRole).queue();
-                                    guild.removeRoleFromMember(member, vipPlusRole).queue();
-                                    guild.removeRoleFromMember(member, vipRole).queue();
+                                    rolesToAdd.add(heroRole);
+                                    rolesToRemove.add(championRole);
+                                    rolesToRemove.add(vipPlusRole);
+                                    rolesToRemove.add(vipRole);
                                 }
                             }
                             case VIPPLUS -> {
                                 if (!hasRole(member, vipPlusRole)) {
                                     System.out.println(member.getUser().getName() + " is a VIP+.");
-                                    guild.addRoleToMember(member, vipPlusRole).queue();
-                                    guild.removeRoleFromMember(member, championRole).queue();
-                                    guild.removeRoleFromMember(member, heroRole).queue();
-                                    guild.removeRoleFromMember(member, vipRole).queue();
+                                    rolesToAdd.add(vipPlusRole);
+                                    rolesToRemove.add(championRole);
+                                    rolesToRemove.add(heroRole);
+                                    rolesToRemove.add(vipRole);
                                 }
                             }
                             case VIP -> {
                                 if (!hasRole(member, vipRole)) {
                                     System.out.println(member.getUser().getName() + " is a VIP.");
-                                    guild.addRoleToMember(member, vipRole).queue();
-                                    guild.removeRoleFromMember(member, championRole).queue();
-                                    guild.removeRoleFromMember(member, heroRole).queue();
-                                    guild.removeRoleFromMember(member, vipPlusRole).queue();
+                                    rolesToAdd.add(vipRole);
+                                    rolesToRemove.add(championRole);
+                                    rolesToRemove.add(heroRole);
+                                    rolesToRemove.add(vipPlusRole);
                                 }
                             }
                         }
@@ -766,9 +783,11 @@ public class EventListener extends ListenerAdapter {
                         if (player.getMeta().isVeteran()) {
                             if (!hasRole(member, vetRole)) {
                                 System.out.println(member.getUser().getName() + " is a Vet.");
-                                guild.addRoleToMember(member, vetRole).queue();
+                                rolesToAdd.add(vetRole);
                             }
                         }
+
+                        guild.modifyMemberRoles(member, rolesToAdd, rolesToRemove).queue();
 
                         break;
                     }
@@ -778,21 +797,25 @@ public class EventListener extends ListenerAdapter {
 
         if (!verified) {
             if(!hasRole(member, unverifiedRole)) {
-                guild.addRoleToMember(member, unverifiedRole).queue();
-                guild.removeRoleFromMember(member, vipRole).queue();
-                guild.removeRoleFromMember(member, vipPlusRole).queue();
-                guild.removeRoleFromMember(member, heroRole).queue();
-                guild.removeRoleFromMember(member, championRole).queue();
-                guild.removeRoleFromMember(member, vetRole).queue();
-                guild.removeRoleFromMember(member, recruitRole).queue();
-                guild.removeRoleFromMember(member, recruiterRole).queue();
-                guild.removeRoleFromMember(member, captainRole).queue();
-                guild.removeRoleFromMember(member, strategistRole).queue();
-                guild.removeRoleFromMember(member, chiefRole).queue();
-                guild.removeRoleFromMember(member, ownerRole).queue();
-                guild.removeRoleFromMember(member, memberOfRole).queue();
-                guild.removeRoleFromMember(member, allyRole).queue();
-                guild.removeRoleFromMember(member, allyOwnerRole).queue();
+                List<Role> rolesToAdd = new ArrayList<>();
+                List<Role> rolesToRemove = new ArrayList<>();
+                rolesToAdd.add(unverifiedRole);
+                rolesToRemove.add(vipRole);
+                rolesToRemove.add(vipPlusRole);
+                rolesToRemove.add(heroRole);
+                rolesToRemove.add(championRole);
+                rolesToRemove.add(vetRole);
+                rolesToRemove.add(recruitRole);
+                rolesToRemove.add(recruiterRole);
+                rolesToRemove.add(captainRole);
+                rolesToRemove.add(strategistRole);
+                rolesToRemove.add(chiefRole);
+                rolesToRemove.add(ownerRole);
+                rolesToRemove.add(memberOfRole);
+                rolesToRemove.add(allyRole);
+                rolesToRemove.add(allyOwnerRole);
+
+                guild.modifyMemberRoles(member, rolesToAdd, rolesToRemove).queue();
             }
 
             return playerName + " is not a member of Chiefs Of Corkus or its allies.";
