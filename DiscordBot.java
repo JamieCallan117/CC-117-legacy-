@@ -6,13 +6,16 @@ import net.dv8tion.jda.api.requests.GatewayIntent;
 
 public class DiscordBot {
     public static void main(String[] args) {
+        //Gets the token object to retrieve bot token.
         Token token = new Token();
 
+        //Creates the bot.
         JDA bot = JDABuilder.create(token.getToken(), GatewayIntent.GUILD_MEMBERS, GatewayIntent.MESSAGE_CONTENT)
                 .setActivity(Activity.watching(" over Corkus Island"))
                 .addEventListeners(new EventListener())
                 .build();
 
+        //Sets up the slash commands for the bot.
         bot.upsertCommand("updateranks", "Updates the rank of every member of the server.").queue();
         bot.upsertCommand("verify", "Updates your rank based on the given username.").addOption(OptionType.STRING, "player_name", "Your Minecraft username to verify as.").queue();
         bot.upsertCommand("setguild", "Sets the Guild this server corresponds to.").addOption(OptionType.STRING, "guild_name", "The main Guild for this server.").queue();
