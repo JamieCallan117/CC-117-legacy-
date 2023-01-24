@@ -17,9 +17,12 @@ public class DiscordBot {
 
         //Sets up the slash commands for the bot.
         bot.upsertCommand("updateranks", "Updates the rank of every member of the server.").queue();
-        bot.upsertCommand("verify", "Updates your rank based on the given username.").addOption(OptionType.STRING, "player_name", "Your Minecraft username to verify as.").queue();
-        bot.upsertCommand("setguild", "Sets the Guild this server corresponds to.").addOption(OptionType.STRING, "guild_name", "The main Guild for this server.").queue();
-        bot.upsertCommand("addally", "Adds an Ally Guild.").addOption(OptionType.STRING, "guild_name", "The name of the Ally guild you want to add.").queue();
-        bot.upsertCommand("removeally", "Removes and Ally Guild.").addOption(OptionType.STRING, "guild_name", "The name of the guild you want to remove as an Ally.").queue();
+        bot.upsertCommand("verify", "Updates your rank based on the given username.").addOption(OptionType.STRING, "player_name", "Your Minecraft username to verify as.", true).queue();
+        bot.upsertCommand("setguild", "Sets the Guild this server corresponds to.").addOption(OptionType.STRING, "guild_name", "The main Guild for this server.", true).queue();
+        bot.upsertCommand("addally", "Adds an Ally Guild.").addOption(OptionType.STRING, "guild_name", "The name of the Ally guild you want to add.", true).queue();
+        bot.upsertCommand("removeally", "Removes and Ally Guild.").addOption(OptionType.STRING, "guild_name", "The name of the guild you want to remove as an Ally.", true).queue();
+        bot.upsertCommand("trackguild", "Track a guild to see its average online players.").addOption(OptionType.STRING, "guild_name", "The name of the guild you want to track.", true).queue();
+        bot.upsertCommand("untrackguild", "No longer track a guild's online players.").addOption(OptionType.STRING, "guild_name", "The name of the guild you no longer want to track.", true).queue();
+        bot.upsertCommand("trackedguilds", "View the average number of online players for each tracked guild.").queue();
     }
 }

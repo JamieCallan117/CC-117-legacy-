@@ -1,10 +1,16 @@
 import me.bed0.jWynn.WynncraftAPI;
 import me.bed0.jWynn.api.v1.guild.WynncraftGuild;
+import me.bed0.jWynn.api.v1.guild.WynncraftGuildMember;
+import me.bed0.jWynn.api.v1.network.WynncraftOnlinePlayers;
+import me.bed0.jWynn.api.v1.network.WynncraftServerOnlinePlayers;
 import me.bed0.jWynn.api.v2.player.WynncraftPlayer;
+import me.bed0.jWynn.exceptions.APIRateLimitExceededException;
+import me.bed0.jWynn.exceptions.APIResponseException;
 import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import net.dv8tion.jda.api.events.guild.GuildReadyEvent;
 import net.dv8tion.jda.api.events.guild.member.GuildMemberJoinEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
@@ -15,9 +21,9 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Scanner;
+import java.util.*;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 public class EventListener extends ListenerAdapter {
@@ -42,12 +48,44 @@ public class EventListener extends ListenerAdapter {
     Role[] allyRoles;
     File guildFile;
     File allyFile;
+    File trackedFile;
+    File tempFile;
     WynncraftGuild mainGuild;
     String guildName = "";
     List<WynncraftGuild> allyGuilds = new ArrayList<>();
     List<Role> rolesToAdd = new ArrayList<>();
     List<Role> rolesToRemove = new ArrayList<>();
     WynncraftPlayer player;
+
+    /**
+     * When bot starts in a server, set up file paths and start the thread to run updateOnlineAverage every hour and
+     * updateRanks every 12 hours.
+     * @param event The event when a bot is ready in a guild.
+     */
+    @Override
+    public void onGuildReady(@NotNull GuildReadyEvent event) {
+        super.onGuildReady(event);
+
+        guildFile = new File("/home/opc/CC-117/" + event.getGuild().getId() + "/" + "guild.txt");
+        allyFile = new File("/home/opc/CC-117/" + event.getGuild().getId() + "/" + "allies.txt");
+        trackedFile = new File("/home/opc/CC-117/" + event.getGuild().getId() + "/" + "tracked.txt");
+        tempFile = new File("/home/opc/CC-117/" + event.getGuild().getId() + "/" + "temp.txt");
+
+        try {
+            Files.createDirectories(Path.of("/home/opc/CC-117/" + event.getGuild().getId()));
+        } catch (IOException ex) {
+            System.out.println("Unable to create directory for guild: " + event.getGuild().getId());
+        }
+
+        Thread averageThread = new Thread(() -> updateOnlineAverage(event.getGuild()));
+//        Thread updateThread = new Thread(() -> updateRanks(event.getGuild()));
+
+        ScheduledExecutorService averageExecutor = Executors.newScheduledThreadPool(1);
+        averageExecutor.scheduleAtFixedRate(averageThread, 0, 1, TimeUnit.HOURS);
+
+//        ScheduledExecutorService updateExecutor = Executors.newScheduledThreadPool(1);
+//        updateExecutor.scheduleAtFixedRate(updateThread, 0, 12, TimeUnit.HOURS);
+    }
 
     /**
      * Adds the unverified role to a new member when they join the server.
@@ -106,9 +144,6 @@ public class EventListener extends ListenerAdapter {
             rankRoles = new Role[]{vipRole, vipPlusRole, heroRole, championRole};
             guildRoles = new Role[]{recruitRole, recruiterRole, captainRole, strategistRole, chiefRole, ownerRole};
             allyRoles = new Role[]{allyRole, allyOwnerRole};
-
-            guildFile = new File("/home/opc/CC-117/" + event.getGuild().getId() + "/" + "guild.txt");
-            allyFile = new File("/home/opc/CC-117/" + event.getGuild().getId() + "/" + "allies.txt");
         }
         else {
             return;
@@ -166,6 +201,29 @@ public class EventListener extends ListenerAdapter {
                 } else {
                     event.getHook().sendMessage("Please enter a Guild name.").setEphemeral(true).queue();
                 }
+            }
+            case "trackguild" -> {
+                event.deferReply().queue();
+                OptionMapping trackGuildNameOption = event.getOption("guild_name");
+                if (trackGuildNameOption != null) {
+                    event.getHook().sendMessage(trackGuild(trackGuildNameOption.getAsString(), event.getGuild())).queue();
+                } else {
+                    event.getHook().sendMessage("Please enter a Guild name.").setEphemeral(true).queue();
+                }
+            }
+            case "untrackguild" -> {
+                event.deferReply().queue();
+                OptionMapping untrackGuildNameOption = event.getOption("guild_name");
+                if (untrackGuildNameOption != null) {
+                    event.getHook().sendMessage(untrackGuild(untrackGuildNameOption.getAsString(), event.getGuild())).queue();
+                } else {
+                    event.getHook().sendMessage("Please enter a Guild name.").setEphemeral(true).queue();
+                }
+            }
+
+            case "trackedguilds" -> {
+                event.deferReply().queue();
+                event.getHook().sendMessage(trackedGuilds()).queue();
             }
             default -> event.reply("Unknown command.").queue();
         }
@@ -231,42 +289,42 @@ public class EventListener extends ListenerAdapter {
                         //Set guild ranks.
                         switch (mainGuild.getMembers()[i].getRank()) {
                             case OWNER -> {
-                                if (hasRole(member, ownerRole)) {
+                                if (needsRole(member, ownerRole)) {
                                     System.out.println(member.getUser().getName() + " is the Owner of the Guild.");
                                     SetGuildRankRoles(ownerRole);
                                     hasUpdated = true;
                                 }
                             }
                             case CHIEF -> {
-                                if (hasRole(member, chiefRole)) {
+                                if (needsRole(member, chiefRole)) {
                                     System.out.println(member.getUser().getName() + " is a Chief of the Guild.");
                                     SetGuildRankRoles(chiefRole);
                                     hasUpdated = true;
                                 }
                             }
                             case STRATEGIST -> {
-                                if (hasRole(member, strategistRole)) {
+                                if (needsRole(member, strategistRole)) {
                                     System.out.println(member.getUser().getName() + " is a Strategist of the Guild.");
                                     SetGuildRankRoles(strategistRole);
                                     hasUpdated = true;
                                 }
                             }
                             case CAPTAIN -> {
-                                if (hasRole(member, captainRole)) {
+                                if (needsRole(member, captainRole)) {
                                     System.out.println(member.getUser().getName() + " is a Captain of the Guild.");
                                     SetGuildRankRoles(captainRole);
                                     hasUpdated = true;
                                 }
                             }
                             case RECRUITER -> {
-                                if (hasRole(member, recruiterRole)) {
+                                if (needsRole(member, recruiterRole)) {
                                     System.out.println(member.getUser().getName() + " is a Recruiter of the Guild.");
                                     SetGuildRankRoles(recruiterRole);
                                     hasUpdated = true;
                                 }
                             }
                             case RECRUIT -> {
-                                if (hasRole(member, recruitRole)) {
+                                if (needsRole(member, recruitRole)) {
                                     System.out.println(member.getUser().getName() + " is a Recruit of the Guild.");
                                     SetGuildRankRoles(recruitRole);
                                     hasUpdated = true;
@@ -327,7 +385,7 @@ public class EventListener extends ListenerAdapter {
                             //Give ally roles.
                             switch (allyGuild.getMembers()[j].getRank()) {
                                 case OWNER -> {
-                                    if (hasRole(member, allyOwnerRole)) {
+                                    if (needsRole(member, allyOwnerRole)) {
                                         System.out.println(member.getUser().getName() + " is the Owner of an Ally Guild.");
                                         SetGuildRankRoles(allyOwnerRole);
                                         SetAllyRankRoles(allyOwnerRole);
@@ -335,7 +393,7 @@ public class EventListener extends ListenerAdapter {
                                     }
                                 }
                                 case CHIEF, STRATEGIST, CAPTAIN, RECRUITER, RECRUIT -> {
-                                    if (hasRole(member, allyRole)) {
+                                    if (needsRole(member, allyRole)) {
                                         System.out.println(member.getUser().getName() + " is a member of an Ally Guild.");
                                         SetGuildRankRoles(allyRole);
                                         SetAllyRankRoles(allyRole);
@@ -366,7 +424,7 @@ public class EventListener extends ListenerAdapter {
 
         //For all members that weren't verified. Add unverified role if need be and remove all other rank related roles.
         for (Member member : discordMembers) {
-            if(hasRole(member, unverifiedRole)) {
+            if(needsRole(member, unverifiedRole)) {
                 rolesToAdd.clear();
                 rolesToRemove.clear();
 
@@ -435,37 +493,37 @@ public class EventListener extends ListenerAdapter {
                 //Sets guild rank roles.
                 switch (mainGuild.getMembers()[i].getRank()) {
                     case OWNER -> {
-                        if (hasRole(member, ownerRole)) {
+                        if (needsRole(member, ownerRole)) {
                             System.out.println(member.getUser().getName() + " is the Owner of the Guild.");
                             SetGuildRankRoles(ownerRole);
                         }
                     }
                     case CHIEF -> {
-                        if (hasRole(member, chiefRole)) {
+                        if (needsRole(member, chiefRole)) {
                             System.out.println(member.getUser().getName() + " is a Chief of the Guild.");
                             SetGuildRankRoles(chiefRole);
                         }
                     }
                     case STRATEGIST -> {
-                        if (hasRole(member, strategistRole)) {
+                        if (needsRole(member, strategistRole)) {
                             System.out.println(member.getUser().getName() + " is a Strategist of the Guild.");
                             SetGuildRankRoles(strategistRole);
                         }
                     }
                     case CAPTAIN -> {
-                        if (hasRole(member, captainRole)) {
+                        if (needsRole(member, captainRole)) {
                             System.out.println(member.getUser().getName() + " is a Captain of the Guild.");
                             SetGuildRankRoles(captainRole);
                         }
                     }
                     case RECRUITER -> {
-                        if (hasRole(member, recruiterRole)) {
+                        if (needsRole(member, recruiterRole)) {
                             System.out.println(member.getUser().getName() + " is a Recruiter of the Guild.");
                             SetGuildRankRoles(recruiterRole);
                         }
                     }
                     case RECRUIT -> {
-                        if (hasRole(member, recruitRole)) {
+                        if (needsRole(member, recruitRole)) {
                             System.out.println(member.getUser().getName() + " is a Recruit of the Guild.");
                             SetGuildRankRoles(recruitRole);
                         }
@@ -474,6 +532,8 @@ public class EventListener extends ListenerAdapter {
 
                 //Sets player roles.
                 setPlayerRoles(member, uuid);
+
+                guild.modifyMemberRoles(member, rolesToAdd, rolesToRemove).queue();
 
                 break;
             }
@@ -501,14 +561,14 @@ public class EventListener extends ListenerAdapter {
                         //Apply ally roles.
                         switch (allyGuild.getMembers()[j].getRank()) {
                             case OWNER -> {
-                                if (hasRole(member, allyOwnerRole)) {
+                                if (needsRole(member, allyOwnerRole)) {
                                     System.out.println(member.getUser().getName() + " is the Owner of an Ally Guild.");
                                     SetGuildRankRoles(allyOwnerRole);
                                     SetAllyRankRoles(allyOwnerRole);
                                 }
                             }
                             case CHIEF, STRATEGIST, CAPTAIN, RECRUITER, RECRUIT -> {
-                                if (hasRole(member, allyRole)) {
+                                if (needsRole(member, allyRole)) {
                                     System.out.println(member.getUser().getName() + " is a member of an Ally Guild.");
                                     SetGuildRankRoles(allyRole);
                                     SetAllyRankRoles(allyRole);
@@ -529,7 +589,7 @@ public class EventListener extends ListenerAdapter {
 
         //If the given player name was not part of the main or an ally guild, apply unverified role and remove all rank roles.
         if (!verified) {
-            if(hasRole(member, unverifiedRole)) {
+            if(needsRole(member, unverifiedRole)) {
                 rolesToAdd.clear();
                 rolesToRemove.clear();
 
@@ -574,28 +634,28 @@ public class EventListener extends ListenerAdapter {
         //Sets player roles.
         switch(player.getMeta().getTag().getValue()) {
             case CHAMPION -> {
-                if (hasRole(member, championRole)) {
+                if (needsRole(member, championRole)) {
                     System.out.println(member.getUser().getName() + " is a CHAMPION.");
                     SetWynnRankRoles(championRole);
                     hasUpdated = true;
                 }
             }
             case HERO -> {
-                if (hasRole(member, heroRole)) {
+                if (needsRole(member, heroRole)) {
                     System.out.println(member.getUser().getName() + " is a HERO.");
                     SetWynnRankRoles(heroRole);
                     hasUpdated = true;
                 }
             }
             case VIPPLUS -> {
-                if (hasRole(member, vipPlusRole)) {
+                if (needsRole(member, vipPlusRole)) {
                     System.out.println(member.getUser().getName() + " is a VIP+.");
                     SetWynnRankRoles(vipPlusRole);
                     hasUpdated = true;
                 }
             }
             case VIP -> {
-                if (hasRole(member, vipRole)) {
+                if (needsRole(member, vipRole)) {
                     System.out.println(member.getUser().getName() + " is a VIP.");
                     SetWynnRankRoles(vipRole);
                     hasUpdated = true;
@@ -604,7 +664,7 @@ public class EventListener extends ListenerAdapter {
         }
 
         if (player.getMeta().isVeteran()) {
-            if (hasRole(member, vetRole)) {
+            if (needsRole(member, vetRole)) {
                 System.out.println(member.getUser().getName() + " is a Vet.");
                 rolesToAdd.add(vetRole);
                 hasUpdated = true;
@@ -630,25 +690,25 @@ public class EventListener extends ListenerAdapter {
         //Updates player roles.
         switch(player.getMeta().getTag().getValue()) {
             case CHAMPION -> {
-                if (hasRole(member, championRole)) {
+                if (needsRole(member, championRole)) {
                     System.out.println(member.getUser().getName() + " is a CHAMPION.");
                     SetWynnRankRoles(championRole);
                 }
             }
             case HERO -> {
-                if (hasRole(member, heroRole)) {
+                if (needsRole(member, heroRole)) {
                     System.out.println(member.getUser().getName() + " is a HERO.");
                     SetWynnRankRoles(heroRole);
                 }
             }
             case VIPPLUS -> {
-                if (hasRole(member, vipPlusRole)) {
+                if (needsRole(member, vipPlusRole)) {
                     System.out.println(member.getUser().getName() + " is a VIP+.");
                     SetWynnRankRoles(vipPlusRole);
                 }
             }
             case VIP -> {
-                if (hasRole(member, vipRole)) {
+                if (needsRole(member, vipRole)) {
                     System.out.println(member.getUser().getName() + " is a VIP.");
                     SetWynnRankRoles(vipRole);
                 }
@@ -656,7 +716,7 @@ public class EventListener extends ListenerAdapter {
         }
 
         if (player.getMeta().isVeteran()) {
-            if (hasRole(member, vetRole)) {
+            if (needsRole(member, vetRole)) {
                 System.out.println(member.getUser().getName() + " is a Vet.");
                 rolesToAdd.add(vetRole);
             }
@@ -793,6 +853,230 @@ public class EventListener extends ListenerAdapter {
     }
 
     /**
+     * Adds a new guild to have its average online players be tracked.
+     * @param guildName The guild to be tracked.
+     * @param guild The current Discord server.
+     * @return The message to be sent back.
+     */
+    private String trackGuild(String guildName, Guild guild) {
+        try {
+            //Get all the current online members in the guild.
+            int currentMembers = getOnlineMembers(wynnAPI.v1().guildStats(guildName).run());
+
+            try {
+                //Use Guild ID to create directory with name unique to the current server.
+                Files.createDirectories(Path.of("/home/opc/CC-117/" + guild.getId()));
+
+                if (trackedFile.createNewFile()) {
+                    System.out.println("File created.");
+                } else {
+                    System.out.println("File already exists.");
+                }
+
+                Files.write(Path.of("/home/opc/CC-117/" + guild.getId() + "/" + "tracked.txt"), (guildName + "," + currentMembers + "," + 1 + "\n").getBytes(), StandardOpenOption.APPEND);
+            } catch (java.io.IOException ex) {
+                return ex.toString();
+            }
+
+            return guildName + "'s average online players are now being tracked.";
+        } catch (APIResponseException ex) {
+            return guildName + " is not a valid Guild.";
+        } catch (APIRateLimitExceededException ex) {
+            return "Hit limit of 750 players checked.";
+        }
+    }
+
+    /**
+     * Gets the number of people currently online in a specific guild.
+     * @param guild The guild to check.
+     * @return The number of people online.
+     */
+    private int getOnlineMembers(WynncraftGuild guild) {
+        int currentlyOnline = 0;
+        List<String> guildMembersNames = new ArrayList<>();
+
+        //Retrieve the names of the members of the guild.
+        for (WynncraftGuildMember player : guild.getMembers()) {
+            guildMembersNames.add(player.getName());
+        }
+
+        //Gets all the players on each server on Wynncraft.
+        WynncraftOnlinePlayers onlineServers = wynnAPI.v1().onlinePlayers().run();
+
+        //Loops through each server and then loops through the players on that server to see if they are in the guild.
+        for (WynncraftServerOnlinePlayers onlineServer : onlineServers.getOnlinePlayers()) {
+            for (String playerName : onlineServer.getPlayers()) {
+                if (guildMembersNames.contains(playerName)) {
+                    currentlyOnline++;
+                }
+            }
+        }
+
+        return currentlyOnline;
+    }
+
+    /**
+     * Updates the average number of players online for each tracked guild.
+     * @param guild The current Discord server.
+     */
+    private void updateOnlineAverage(Guild guild) {
+        try {
+            Scanner scanner = new Scanner(trackedFile);
+            String currentLine;
+            List<String> lineSplit;
+            String currentGuildName;
+            double currentGuildAverage;
+            int currentGuildChecks;
+            double newAverage;
+
+            if (!trackedFile.exists()) {
+                System.out.println("No file exists.");
+            }
+
+            if (tempFile.createNewFile()) {
+                System.out.println("File created.");
+            } else {
+                System.out.println("File already exists.");
+            }
+
+            //Loop through each line in file, get the guild name, current average and how many times the average has been checked.
+            while (scanner.hasNextLine()) {
+                currentLine = scanner.nextLine();
+                lineSplit = Arrays.asList(currentLine.split(","));
+                currentGuildName = lineSplit.get(0);
+                currentGuildAverage = Double.parseDouble(lineSplit.get(1));
+                currentGuildChecks = Integer.parseInt(lineSplit.get(2));
+
+                //Get current online count.
+                int onlineMembers = getOnlineMembers(wynnAPI.v1().guildStats(currentGuildName).run());
+
+                //Update average.
+                newAverage = currentGuildAverage * (currentGuildChecks - 1) / currentGuildChecks + (double) onlineMembers / currentGuildChecks;
+
+                //Make string ready to be saved.
+                currentLine = currentGuildName + "," + newAverage + "," + (currentGuildChecks + 1);
+
+                //Write new average.
+                Files.write(Path.of("/home/opc/CC-117/" + guild.getId() + "/" + "temp.txt"), (currentLine + "\n").getBytes(), StandardOpenOption.APPEND);
+            }
+
+            scanner.close();
+
+            renameTrackedFile();
+
+        } catch (java.io.IOException ex) {
+            System.out.println("Error accessing file");
+        }
+    }
+
+    /**
+     * Removes tracked guild from the file.
+     * @param guildName Guild to untrack.
+     * @param guild The current Discord server.
+     * @return Message to send back.
+     */
+    private String untrackGuild(String guildName, Guild guild) {
+        try {
+            Scanner scanner = new Scanner(trackedFile);
+            String currentLine;
+            String currentGuild;
+
+            if (tempFile.createNewFile()) {
+                System.out.println("File created.");
+            } else {
+                System.out.println("File already exists.");
+            }
+
+            //Loop through every line in tracked file and if it does not match the name of the
+            //guild requested to remove as tracked, add it to the temp file.
+            while (scanner.hasNextLine()) {
+                currentLine = scanner.nextLine();
+                currentGuild = Arrays.asList(currentLine.split(",")).get(0);
+
+                if (!currentGuild.equals(guildName)) {
+                    Files.write(Path.of("/home/opc/CC-117/" + guild.getId() + "/" + "temp.txt"), (currentLine + "\n").getBytes(), StandardOpenOption.APPEND);
+                }
+            }
+
+            scanner.close();
+
+            renameTrackedFile();
+
+        } catch (java.io.IOException ex) {
+            return "No tracked guilds found: " + ex;
+        }
+
+        return "Removed " + guildName + " as tracked.";
+    }
+
+    /**
+     * Renames the temp file to the tracked file.
+     */
+    private void renameTrackedFile() {
+        //Delete old tracked file and rename the temp file to the tracked file.
+        if (trackedFile.delete()) {
+            System.out.println("Tracked file deleted successfully.");
+        } else {
+            System.out.println("Unable to delete tracked file.");
+        }
+
+        if (tempFile.renameTo(trackedFile)) {
+            System.out.println("Temp file renamed successfully.");
+        } else {
+            System.out.println("Unable to rename temp file.");
+        }
+    }
+
+    /**
+     * Shows a formatted string of the average online players of each tracked guild.
+     * @return The message to send back.
+     */
+    private String trackedGuilds() {
+        StringBuilder guildAverages = new StringBuilder("```Guild Name          Average Online Members\n--------------------------------------------\n");
+
+        try {
+            Scanner scanner = new Scanner(trackedFile);
+            String currentLine;
+            List<String> lineSplit;
+            String currentGuildName;
+            double currentGuildAverage;
+            List<GuildAverageMembers> averageMembers = new ArrayList<>();
+
+            if (!trackedFile.exists()) {
+                return "No tracked guilds.";
+            }
+
+            //Loop through every line in the file. Get the name and average online players.
+            while (scanner.hasNextLine()) {
+                currentLine = scanner.nextLine();
+                lineSplit = Arrays.asList(currentLine.split(","));
+                currentGuildName = lineSplit.get(0);
+                currentGuildAverage = Double.parseDouble(lineSplit.get(1));
+
+                //Create an object that can be sorted by average.
+                averageMembers.add(new GuildAverageMembers(currentGuildName, currentGuildAverage));
+            }
+
+            scanner.close();
+
+            //Sort the guilds by highest average online players.
+            averageMembers.sort(Collections.reverseOrder());
+
+            //Create the string message to be sent.
+            for (GuildAverageMembers members : averageMembers) {
+                guildAverages.append(members.getAverageString());
+            }
+
+        } catch (java.io.IOException ex) {
+            return "No tracked guilds found: " + ex;
+        }
+
+        guildAverages.append("```");
+
+        return guildAverages.toString();
+    }
+
+    /**
      * Stores the name of the Wynncraft Guild into a file so that the bot can work
      * on different servers if need be.
      * @param guildName The name of the guild to store in the file.
@@ -801,13 +1085,16 @@ public class EventListener extends ListenerAdapter {
      */
     private String setGuild(String guildName, Guild guild) {
         try {
-            //Use Guild ID to create directory with name unique to the current server.
-            Files.createDirectories(Path.of("/home/opc/CC-117/" + guild.getId()));
-
             if (guildFile.createNewFile()) {
                 System.out.println("File created.");
             } else {
                 System.out.println("File already exists.");
+            }
+
+            try {
+                wynnAPI.v1().guildStats(guildName).run();
+            } catch (APIResponseException ex) {
+                return guildName + " is not a valid Guild.";
             }
 
             FileWriter guildFileWriter = new FileWriter("/home/opc/CC-117/" + guild.getId() + "/" + "guild.txt");
@@ -838,6 +1125,12 @@ public class EventListener extends ListenerAdapter {
                 System.out.println("File already exists.");
             }
 
+            try {
+                wynnAPI.v1().guildStats(guildName).run();
+            } catch (APIResponseException ex) {
+                return guildName + " is not a valid Guild.";
+            }
+
             Files.write(Path.of("/home/opc/CC-117/" + guild.getId() + "/" + "allies.txt"), (guildName + "\n").getBytes(), StandardOpenOption.APPEND);
         } catch (java.io.IOException ex) {
             return ex.toString();
@@ -854,8 +1147,6 @@ public class EventListener extends ListenerAdapter {
      * @return Message to say Ally removed or not.
      */
     private String removeAlly(String guildName, Guild guild) {
-        File tempFile = new File("/home/opc/CC-117/" + guild.getId() + "/" + "temp.txt");
-
         try {
             Scanner scanner = new Scanner(allyFile);
             String currentLine;
@@ -898,12 +1189,12 @@ public class EventListener extends ListenerAdapter {
     }
 
     /**
-     * Checks if a member in a Discord server has a specified role or not.
+     * Checks if a member in a Discord server needs a specified role or not.
      * @param member The member to check.
      * @param role The role to check.
-     * @return Whether they have the role or not.
+     * @return Whether they have the role or not. False if they have it already, true if they don't.
      */
-    private boolean hasRole(Member member, Role role) {
+    private boolean needsRole(Member member, Role role) {
         List<Role> memberRoles = member.getRoles();
         return !memberRoles.contains(role);
     }
