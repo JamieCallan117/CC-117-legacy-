@@ -71,20 +71,39 @@ public class EventListener extends ListenerAdapter {
         trackedFile = new File("/home/opc/CC-117/" + event.getGuild().getId() + "/" + "tracked.txt");
         tempFile = new File("/home/opc/CC-117/" + event.getGuild().getId() + "/" + "temp.txt");
 
+        ownerRole = event.getGuild().getRoleById("919792790567788564");
+        chiefRole = event.getGuild().getRoleById("919794161220222977");
+        strategistRole = event.getGuild().getRoleById("919794296545234964");
+        captainRole = event.getGuild().getRoleById("919794331286646835");
+        recruiterRole = event.getGuild().getRoleById("919794383631577099");
+        recruitRole = event.getGuild().getRoleById("919794568021565510");
+        championRole = event.getGuild().getRoleById("1011887156182126593");
+        heroRole = event.getGuild().getRoleById("1011886987319447582");
+        vipPlusRole = event.getGuild().getRoleById("1011886859091202048");
+        vipRole = event.getGuild().getRoleById("1011886757366743100");
+        vetRole = event.getGuild().getRoleById("1011886630291918928");
+        unverifiedRole = event.getGuild().getRoleById("1061791662541647913");
+        memberOfRole = event.getGuild().getRoleById("919790925528596551");
+        allyRole = event.getGuild().getRoleById("1055652963143663651");
+        allyOwnerRole = event.getGuild().getRoleById("1055652974245974026");
+
+        rankRoles = new Role[]{vipRole, vipPlusRole, heroRole, championRole};
+        guildRoles = new Role[]{recruitRole, recruiterRole, captainRole, strategistRole, chiefRole, ownerRole};
+        allyRoles = new Role[]{allyRole, allyOwnerRole};
+
         try {
             Files.createDirectories(Path.of("/home/opc/CC-117/" + event.getGuild().getId()));
         } catch (IOException ex) {
             System.out.println("Unable to create directory for guild: " + event.getGuild().getId());
         }
 
-        Thread averageThread = new Thread(() -> updateOnlineAverage(event.getGuild()));
-//        Thread updateThread = new Thread(() -> updateRanks(event.getGuild()));
+        Thread thread = new Thread(() -> {
+            updateOnlineAverage(event.getGuild());
+            updateRanks(event.getGuild());
+        });
 
-        ScheduledExecutorService averageExecutor = Executors.newScheduledThreadPool(1);
-        averageExecutor.scheduleAtFixedRate(averageThread, 0, 1, TimeUnit.HOURS);
-
-//        ScheduledExecutorService updateExecutor = Executors.newScheduledThreadPool(1);
-//        updateExecutor.scheduleAtFixedRate(updateThread, 0, 12, TimeUnit.HOURS);
+        ScheduledExecutorService updateExecutor = Executors.newScheduledThreadPool(1);
+        updateExecutor.scheduleAtFixedRate(thread, 0, 1, TimeUnit.HOURS);
     }
 
     /**
@@ -123,29 +142,7 @@ public class EventListener extends ListenerAdapter {
     public void onSlashCommandInteraction(@NotNull SlashCommandInteractionEvent event) {
         super.onSlashCommandInteraction(event);
 
-        //Update role variables and paths.
-        if (event.getGuild() != null) {
-            ownerRole = event.getGuild().getRoleById("919792790567788564");
-            chiefRole = event.getGuild().getRoleById("919794161220222977");
-            strategistRole = event.getGuild().getRoleById("919794296545234964");
-            captainRole = event.getGuild().getRoleById("919794331286646835");
-            recruiterRole = event.getGuild().getRoleById("919794383631577099");
-            recruitRole = event.getGuild().getRoleById("919794568021565510");
-            championRole = event.getGuild().getRoleById("1011887156182126593");
-            heroRole = event.getGuild().getRoleById("1011886987319447582");
-            vipPlusRole = event.getGuild().getRoleById("1011886859091202048");
-            vipRole = event.getGuild().getRoleById("1011886757366743100");
-            vetRole = event.getGuild().getRoleById("1011886630291918928");
-            unverifiedRole = event.getGuild().getRoleById("1061791662541647913");
-            memberOfRole = event.getGuild().getRoleById("919790925528596551");
-            allyRole = event.getGuild().getRoleById("1055652963143663651");
-            allyOwnerRole = event.getGuild().getRoleById("1055652974245974026");
-
-            rankRoles = new Role[]{vipRole, vipPlusRole, heroRole, championRole};
-            guildRoles = new Role[]{recruitRole, recruiterRole, captainRole, strategistRole, chiefRole, ownerRole};
-            allyRoles = new Role[]{allyRole, allyOwnerRole};
-        }
-        else {
+        if (event.getGuild() == null) {
             return;
         }
 
