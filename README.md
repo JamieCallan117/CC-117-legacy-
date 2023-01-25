@@ -29,5 +29,5 @@ rather than the whole server.
 
 ## Wynncraft Public API
 
-The bot reads the data from the Wynncraft Public API located here: https://docs.wynncraft.com/
+The bot reads the data from the Wynncraft Public API, docs located here: https://docs.wynncraft.com/
 It reads data relating to guilds, and their members, including their guild rank, personal rank and veteran status.
