@@ -153,14 +153,22 @@ public class EventListener extends ListenerAdapter {
         super.onSlashCommandInteraction(event);
 
         if (event.getGuild() == null) {
-            return;
+            event.reply("Error running command, no guild found").queue();
+        }
+
+        if (event.getMember() == null) {
+            event.reply("Error running command, no member found").queue();
         }
 
         //Determine which command was used.
         switch (event.getName()) {
             case "updateranks" -> {
-                event.deferReply().queue();
-                event.getHook().sendMessage(updateRanks(event.getGuild())).queue();
+                if (canUseCommand(event.getMember())) {
+                    event.deferReply().queue();
+                    event.getHook().sendMessage(updateRanks(event.getGuild())).queue();
+                } else {
+                    event.reply("Sorry you must be a Chief to use this command").queue();
+                }
             }
             case "verify" -> {
                 event.deferReply().setEphemeral(true).queue();
@@ -183,48 +191,68 @@ public class EventListener extends ListenerAdapter {
                 }
             }
             case "setguild" -> {
-                event.deferReply().queue();
-                OptionMapping guildNameOption = event.getOption("guild_name");
-                if (guildNameOption != null) {
-                    event.getHook().sendMessage(setGuild(guildNameOption.getAsString(), event.getGuild())).queue();
+                if (canUseCommand(event.getMember())) {
+                    event.deferReply().queue();
+                    OptionMapping guildNameOption = event.getOption("guild_name");
+                    if (guildNameOption != null) {
+                        event.getHook().sendMessage(setGuild(guildNameOption.getAsString(), event.getGuild())).queue();
+                    } else {
+                        event.getHook().sendMessage("Please enter a Guild name.").setEphemeral(true).queue();
+                    }
                 } else {
-                    event.getHook().sendMessage("Please enter a Guild name.").setEphemeral(true).queue();
+                    event.reply("Sorry you must be a Chief to use this command").queue();
                 }
             }
             case "addally" -> {
-                event.deferReply().queue();
-                OptionMapping addAllyNameOption = event.getOption("guild_name");
-                if (addAllyNameOption != null) {
-                    event.getHook().sendMessage(addAlly(addAllyNameOption.getAsString(), event.getGuild())).queue();
+                if (canUseCommand(event.getMember())) {
+                    event.deferReply().queue();
+                    OptionMapping addAllyNameOption = event.getOption("guild_name");
+                    if (addAllyNameOption != null) {
+                        event.getHook().sendMessage(addAlly(addAllyNameOption.getAsString(), event.getGuild())).queue();
+                    } else {
+                        event.getHook().sendMessage("Please enter a Guild name.").setEphemeral(true).queue();
+                    }
                 } else {
-                    event.getHook().sendMessage("Please enter a Guild name.").setEphemeral(true).queue();
+                    event.reply("Sorry you must be a Chief to use this command").queue();
                 }
             }
             case "removeally" -> {
-                event.deferReply().queue();
-                OptionMapping removeAllyNameOption = event.getOption("guild_name");
-                if (removeAllyNameOption != null) {
-                    event.getHook().sendMessage(removeAlly(removeAllyNameOption.getAsString(), event.getGuild())).queue();
+                if (canUseCommand(event.getMember())) {
+                    event.deferReply().queue();
+                    OptionMapping removeAllyNameOption = event.getOption("guild_name");
+                    if (removeAllyNameOption != null) {
+                        event.getHook().sendMessage(removeAlly(removeAllyNameOption.getAsString(), event.getGuild())).queue();
+                    } else {
+                        event.getHook().sendMessage("Please enter a Guild name.").setEphemeral(true).queue();
+                    }
                 } else {
-                    event.getHook().sendMessage("Please enter a Guild name.").setEphemeral(true).queue();
+                    event.reply("Sorry you must be a Chief to use this command").queue();
                 }
             }
             case "trackguild" -> {
-                event.deferReply().queue();
-                OptionMapping trackGuildNameOption = event.getOption("guild_name");
-                if (trackGuildNameOption != null) {
-                    event.getHook().sendMessage(trackGuild(trackGuildNameOption.getAsString(), event.getGuild())).queue();
+                if (canUseCommand(event.getMember())) {
+                    event.deferReply().queue();
+                    OptionMapping trackGuildNameOption = event.getOption("guild_name");
+                    if (trackGuildNameOption != null) {
+                        event.getHook().sendMessage(trackGuild(trackGuildNameOption.getAsString(), event.getGuild())).queue();
+                    } else {
+                        event.getHook().sendMessage("Please enter a Guild name.").setEphemeral(true).queue();
+                    }
                 } else {
-                    event.getHook().sendMessage("Please enter a Guild name.").setEphemeral(true).queue();
+                    event.reply("Sorry you must be a Chief to use this command").queue();
                 }
             }
             case "untrackguild" -> {
-                event.deferReply().queue();
-                OptionMapping untrackGuildNameOption = event.getOption("guild_name");
-                if (untrackGuildNameOption != null) {
-                    event.getHook().sendMessage(untrackGuild(untrackGuildNameOption.getAsString(), event.getGuild())).queue();
+                if (canUseCommand(event.getMember())) {
+                    event.deferReply().queue();
+                    OptionMapping untrackGuildNameOption = event.getOption("guild_name");
+                    if (untrackGuildNameOption != null) {
+                        event.getHook().sendMessage(untrackGuild(untrackGuildNameOption.getAsString(), event.getGuild())).queue();
+                    } else {
+                        event.getHook().sendMessage("Please enter a Guild name.").setEphemeral(true).queue();
+                    }
                 } else {
-                    event.getHook().sendMessage("Please enter a Guild name.").setEphemeral(true).queue();
+                    event.reply("Sorry you must be a Chief to use this command").queue();
                 }
             }
 
@@ -1216,5 +1244,16 @@ public class EventListener extends ListenerAdapter {
     private boolean needsRole(Member member, Role role) {
         List<Role> memberRoles = member.getRoles();
         return !memberRoles.contains(role);
+    }
+
+    /**
+     * Checks if a member has permission to use certain commands, must be an Owner or a Chief.
+     * @param member The member to check.
+     * @return Whether they have permission or not.
+     */
+    private boolean canUseCommand(Member member) {
+        List<Role> memberRoles = member.getRoles();
+
+        return memberRoles.contains(ownerRole) || memberRoles.contains(chiefRole);
     }
 }
