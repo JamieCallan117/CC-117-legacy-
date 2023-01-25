@@ -99,7 +99,17 @@ public class EventListener extends ListenerAdapter {
 
         Thread thread = new Thread(() -> {
             updateOnlineAverage(event.getGuild());
-            updateRanks(event.getGuild());
+            String response = updateRanks(event.getGuild());
+
+            if (!response.equals("Updated roles for 0 members!")) {
+                TextChannel channel = event.getGuild().getTextChannelById("1061698530651144212");
+
+                if (channel != null) {
+                    channel.sendMessage(response).queue();
+                } else {
+                    System.out.println("Unable to find channel with ID: 1061698530651144212");
+                }
+            }
         });
 
         ScheduledExecutorService updateExecutor = Executors.newScheduledThreadPool(1);
@@ -868,6 +878,18 @@ public class EventListener extends ListenerAdapter {
                     System.out.println("File created.");
                 } else {
                     System.out.println("File already exists.");
+                }
+
+                Scanner scanner = new Scanner(trackedFile);
+                String currentLine;
+                List<String> lineSplit;
+
+                while (scanner.hasNextLine()) {
+                    currentLine = scanner.nextLine();
+                    lineSplit = Arrays.asList(currentLine.split(","));
+                    if (lineSplit.get(0).equals(guildName)) {
+                        return guildName + " is already being tracked.";
+                    }
                 }
 
                 Files.write(Path.of("/home/opc/CC-117/" + guild.getId() + "/" + "tracked.txt"), (guildName + "," + currentMembers + "," + 1 + "\n").getBytes(), StandardOpenOption.APPEND);

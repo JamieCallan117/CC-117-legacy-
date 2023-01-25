@@ -1,8 +1,11 @@
 import org.jetbrains.annotations.NotNull;
 
+import java.math.RoundingMode;
+import java.text.DecimalFormat;
+
 public class GuildAverageMembers implements Comparable<GuildAverageMembers>{
     private final String name;
-    private double average;
+    private final double average;
 
     /**
      * Creates a GuildAverageMembers object.
@@ -27,7 +30,9 @@ public class GuildAverageMembers implements Comparable<GuildAverageMembers>{
      * @return The formatted string.
      */
     public String getAverageString() {
-        return String.format("%-20s          %-11s\n", name, average);
+        DecimalFormat df = new DecimalFormat("#.##");
+        df.setRoundingMode(RoundingMode.CEILING);
+        return String.format("%-20s          %-11s\n", name, df.format(average));
     }
 
     /**
