@@ -1,9 +1,7 @@
-import org.jetbrains.annotations.NotNull;
-
 import java.math.RoundingMode;
 import java.text.DecimalFormat;
 
-public class GuildAverageMembers implements Comparable<main.java.GuildAverageMembers>{
+public class GuildAverageMembers implements Comparable<GuildAverageMembers>{
     private final String name;
     private final double average;
     private int activeHour;
@@ -99,7 +97,7 @@ public class GuildAverageMembers implements Comparable<main.java.GuildAverageMem
      * @return Whether it should be sorted above or below the compared object.
      */
     @Override
-    public int compareTo(@NotNull main.java.GuildAverageMembers other) {
+    public int compareTo(GuildAverageMembers other) {
         return Double.compare(average, other.getAverage());
     }
 }
