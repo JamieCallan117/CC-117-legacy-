@@ -270,6 +270,9 @@ public class EventListener extends ListenerAdapter {
 
                 OptionMapping timezoneOption = event.getOption("timezone");
 
+                currentTrackedPage = 0;
+                trackedPages.clear();
+
                 if (timezoneOption == null) {
                     event.getHook().sendMessage(trackedGuilds("UTC"))
                             .addActionRow(
@@ -1231,6 +1234,11 @@ public class EventListener extends ListenerAdapter {
                     guildAverages.append(members.getAverageString());
                     counter++;
                 }
+            }
+
+            if (counter != 10) {
+                guildAverages.append("```");
+                trackedPages.add(guildAverages.toString());
             }
         } catch (java.io.IOException ex) {
             return "No tracked guilds found: " + ex;

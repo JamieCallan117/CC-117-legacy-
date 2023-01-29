@@ -37,7 +37,7 @@ public class GuildAverageMembers implements Comparable<GuildAverageMembers>{
         DecimalFormat df = new DecimalFormat("#.##");
         df.setRoundingMode(RoundingMode.CEILING);
         String activeHourStr = activeHour + ":00";
-        String deadHourStr = activeHour + ":00";
+        String deadHourStr = deadHour + ":00";
 
         //Use given timezone to determine active/dead hours in local time.
         switch (timezone) {
@@ -86,7 +86,10 @@ public class GuildAverageMembers implements Comparable<GuildAverageMembers>{
                 activeHourStr = activeHour + ":00";
                 deadHourStr = deadHour + ":00";
             }
-            case "GMT", "UTC" -> activeHourStr = activeHour + ":00";
+            case "GMT", "UTC" -> {
+                activeHourStr = activeHour + ":00";
+                deadHourStr = deadHour + ":00";
+            }
         }
         return String.format("%-20s         %-11s                   %-11s         %-11s\n", name, df.format(average), activeHourStr, deadHourStr);
     }
