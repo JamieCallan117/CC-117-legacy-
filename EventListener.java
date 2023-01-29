@@ -13,6 +13,7 @@ import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
 import net.dv8tion.jda.api.events.guild.GuildReadyEvent;
 import net.dv8tion.jda.api.events.guild.member.GuildMemberJoinEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
+import net.dv8tion.jda.api.exceptions.HierarchyException;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import org.jetbrains.annotations.NotNull;
@@ -21,6 +22,8 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -98,6 +101,7 @@ public class EventListener extends ListenerAdapter {
         }
 
         Thread thread = new Thread(() -> {
+            System.out.println("Running at " + Instant.now().atZone(ZoneOffset.UTC).getHour() + ":" + Instant.now().atZone(ZoneOffset.UTC).getMinute());
             updateOnlineAverage(event.getGuild());
             String response = updateRanks(event.getGuild());
 
@@ -167,7 +171,7 @@ public class EventListener extends ListenerAdapter {
                     event.deferReply().queue();
                     event.getHook().sendMessage(updateRanks(event.getGuild())).queue();
                 } else {
-                    event.reply("Sorry you must be a Chief to use this command").queue();
+                    event.reply("Sorry you must be a Chief to use this command").setEphemeral(true).queue();
                 }
             }
             case "verify" -> {
@@ -200,7 +204,7 @@ public class EventListener extends ListenerAdapter {
                         event.getHook().sendMessage("Please enter a Guild name.").setEphemeral(true).queue();
                     }
                 } else {
-                    event.reply("Sorry you must be a Chief to use this command").queue();
+                    event.reply("Sorry you must be a Chief to use this command").setEphemeral(true).queue();
                 }
             }
             case "addally" -> {
@@ -213,7 +217,7 @@ public class EventListener extends ListenerAdapter {
                         event.getHook().sendMessage("Please enter a Guild name.").setEphemeral(true).queue();
                     }
                 } else {
-                    event.reply("Sorry you must be a Chief to use this command").queue();
+                    event.reply("Sorry you must be a Chief to use this command").setEphemeral(true).queue();
                 }
             }
             case "removeally" -> {
@@ -226,7 +230,7 @@ public class EventListener extends ListenerAdapter {
                         event.getHook().sendMessage("Please enter a Guild name.").setEphemeral(true).queue();
                     }
                 } else {
-                    event.reply("Sorry you must be a Chief to use this command").queue();
+                    event.reply("Sorry you must be a Chief to use this command").setEphemeral(true).queue();
                 }
             }
             case "trackguild" -> {
@@ -239,7 +243,7 @@ public class EventListener extends ListenerAdapter {
                         event.getHook().sendMessage("Please enter a Guild name.").setEphemeral(true).queue();
                     }
                 } else {
-                    event.reply("Sorry you must be a Chief to use this command").queue();
+                    event.reply("Sorry you must be a Chief to use this command").setEphemeral(true).queue();
                 }
             }
             case "untrackguild" -> {
@@ -252,15 +256,22 @@ public class EventListener extends ListenerAdapter {
                         event.getHook().sendMessage("Please enter a Guild name.").setEphemeral(true).queue();
                     }
                 } else {
-                    event.reply("Sorry you must be a Chief to use this command").queue();
+                    event.reply("Sorry you must be a Chief to use this command").setEphemeral(true).queue();
                 }
             }
 
             case "trackedguilds" -> {
                 event.deferReply().queue();
-                event.getHook().sendMessage(trackedGuilds()).queue();
+
+                OptionMapping timezoneOption = event.getOption("timezone");
+
+                if (timezoneOption == null) {
+                    event.getHook().sendMessage(trackedGuilds("UTC")).queue();
+                } else {
+                    event.getHook().sendMessage(trackedGuilds(timezoneOption.getAsString())).queue();
+                }
             }
-            default -> event.reply("Unknown command.").queue();
+            default -> event.reply("Unknown command.").setEphemeral(true).queue();
         }
     }
 
@@ -314,7 +325,7 @@ public class EventListener extends ListenerAdapter {
                         try {
                             member.modifyNickname(mainGuild.getMembers()[i].getName()).queue();
                             System.out.println("Verified " + member.getUser().getName() + " as Guild member " + mainGuild.getMembers()[i].getName());
-                        } catch (Exception e) {
+                        } catch (HierarchyException e) {
                             System.out.println("Verified " + member.getUser().getName() + " as Guild member " + mainGuild.getMembers()[i].getName() + "(Could not change nickname)");
                         }
 
@@ -410,7 +421,7 @@ public class EventListener extends ListenerAdapter {
                             try {
                                 member.modifyNickname(allyGuild.getMembers()[j].getName()).queue();
                                 System.out.println("Verified " + member.getUser().getName() + " as Ally Guild member " + allyGuild.getMembers()[j].getName());
-                            } catch (Exception e) {
+                            } catch (HierarchyException e) {
                                 System.out.println("Verified " + member.getUser().getName() + " as Ally Guild member " + allyGuild.getMembers()[j].getName() + "(Could not change nickname)");
                             }
 
@@ -920,7 +931,9 @@ public class EventListener extends ListenerAdapter {
                     }
                 }
 
-                Files.write(Path.of("/home/opc/CC-117/" + guild.getId() + "/" + "tracked.txt"), (guildName + "," + currentMembers + "," + 1 + "\n").getBytes(), StandardOpenOption.APPEND);
+                Instant instant = Instant.now();
+
+                Files.write(Path.of("/home/opc/CC-117/" + guild.getId() + "/" + "tracked.txt"), (guildName + "," + currentMembers + "," + 1 + "," + instant.atZone(ZoneOffset.UTC).getHour() + "," + instant.atZone(ZoneOffset.UTC).getHour() + "\n").getBytes(), StandardOpenOption.APPEND);
             } catch (java.io.IOException ex) {
                 return ex.toString();
             }
@@ -974,6 +987,8 @@ public class EventListener extends ListenerAdapter {
             String currentGuildName;
             double currentGuildAverage;
             int currentGuildChecks;
+            int currentGuildActiveHour;
+            int currentGuildDeadHour;
             double newAverage;
 
             if (!trackedFile.exists()) {
@@ -993,15 +1008,32 @@ public class EventListener extends ListenerAdapter {
                 currentGuildName = lineSplit.get(0);
                 currentGuildAverage = Double.parseDouble(lineSplit.get(1));
                 currentGuildChecks = Integer.parseInt(lineSplit.get(2));
+                currentGuildActiveHour = Integer.parseInt(lineSplit.get(3));
+                currentGuildDeadHour = Integer.parseInt(lineSplit.get(4));
 
                 //Get current online count.
                 int onlineMembers = getOnlineMembers(wynnAPI.v1().guildStats(currentGuildName).run());
 
-                //Update average.
-                newAverage = currentGuildAverage * (currentGuildChecks - 1) / currentGuildChecks + (double) onlineMembers / currentGuildChecks;
+                //Update the average. If it has been running for a month, 672 hours, then reset but keep the previous months average as a starting base.
+                if (currentGuildChecks < 672) {
+                    newAverage = currentGuildAverage * (currentGuildChecks - 1) / currentGuildChecks + (double) onlineMembers / currentGuildChecks;
+                } else {
+                    currentGuildChecks = 0;
+                    newAverage = currentGuildAverage + (double) onlineMembers / 2.0;
+                }
+
+                Instant instant = Instant.now();
+
+                if (onlineMembers >= currentGuildActiveHour) {
+                    currentGuildActiveHour = instant.atZone(ZoneOffset.UTC).getHour();
+                }
+
+                if (onlineMembers <= currentGuildDeadHour) {
+                    currentGuildDeadHour = instant.atZone(ZoneOffset.UTC).getHour();
+                }
 
                 //Make string ready to be saved.
-                currentLine = currentGuildName + "," + newAverage + "," + (currentGuildChecks + 1);
+                currentLine = currentGuildName + "," + newAverage + "," + (currentGuildChecks + 1) + "," + currentGuildActiveHour + "," + currentGuildDeadHour;
 
                 //Write new average.
                 Files.write(Path.of("/home/opc/CC-117/" + guild.getId() + "/" + "temp.txt"), (currentLine + "\n").getBytes(), StandardOpenOption.APPEND);
@@ -1013,6 +1045,30 @@ public class EventListener extends ListenerAdapter {
 
         } catch (java.io.IOException ex) {
             System.out.println("Error accessing file");
+        } catch (Exception ex) {
+            ex.printStackTrace();
+
+            TextChannel channel = guild.getTextChannelById("1061698530651144212");
+
+            if (channel != null) {
+                channel.sendMessage("Checks the logs, something broke").queue();
+            }
+
+            File logFile = new File("/home/opc/CC-117/" + guild.getId() + "/" + "logs.txt");
+
+            try {
+                if (logFile.createNewFile()) {
+                    System.out.println("File created.");
+                } else {
+                    System.out.println("File already exists.");
+                }
+
+                FileWriter logFileWriter = new FileWriter("/home/opc/CC-117/" + guild.getId() + "/" + "logs.txt");
+                logFileWriter.write(String.valueOf(ex));
+                logFileWriter.close();
+            } catch (java.io.IOException exx) {
+                exx.printStackTrace();
+            }
         }
     }
 
@@ -1078,8 +1134,8 @@ public class EventListener extends ListenerAdapter {
      * Shows a formatted string of the average online players of each tracked guild.
      * @return The message to send back.
      */
-    private String trackedGuilds() {
-        StringBuilder guildAverages = new StringBuilder("```Guild Name          Average Online Members\n--------------------------------------------\n");
+    private String trackedGuilds(String timezone) {
+        StringBuilder guildAverages = new StringBuilder("```Guild Name          Average Online Members          Active Hour (" + timezone + ")    Dead Hour (" + timezone + ")\n------------------------------------------------------------------------------------------\n");
 
         try {
             Scanner scanner = new Scanner(trackedFile);
@@ -1087,6 +1143,8 @@ public class EventListener extends ListenerAdapter {
             List<String> lineSplit;
             String currentGuildName;
             double currentGuildAverage;
+            int currentGuildActiveHour;
+            int currentGuildDeadHour;
             List<GuildAverageMembers> averageMembers = new ArrayList<>();
 
             if (!trackedFile.exists()) {
@@ -1099,9 +1157,11 @@ public class EventListener extends ListenerAdapter {
                 lineSplit = Arrays.asList(currentLine.split(","));
                 currentGuildName = lineSplit.get(0);
                 currentGuildAverage = Double.parseDouble(lineSplit.get(1));
+                currentGuildActiveHour = Integer.parseInt(lineSplit.get(3));
+                currentGuildDeadHour = Integer.parseInt(lineSplit.get(4));
 
                 //Create an object that can be sorted by average.
-                averageMembers.add(new GuildAverageMembers(currentGuildName, currentGuildAverage));
+                averageMembers.add(new GuildAverageMembers(currentGuildName, currentGuildAverage, currentGuildActiveHour, currentGuildDeadHour, timezone));
             }
 
             scanner.close();

@@ -2,6 +2,7 @@ import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.entities.Activity;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
+import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 
 public class DiscordBot {
@@ -10,7 +11,7 @@ public class DiscordBot {
         Token token = new Token();
 
         //Creates the bot.
-        JDA bot = JDABuilder.create(token.getToken(), GatewayIntent.GUILD_MEMBERS, GatewayIntent.MESSAGE_CONTENT)
+        JDA bot = JDABuilder.create(token.getToken(), GatewayIntent.GUILD_MEMBERS, GatewayIntent.MESSAGE_CONTENT, GatewayIntent.GUILD_MESSAGES)
                 .setActivity(Activity.watching(" over Corkus Island"))
                 .addEventListeners(new EventListener())
                 .build();
@@ -23,6 +24,13 @@ public class DiscordBot {
         bot.upsertCommand("removeally", "Removes and Ally Guild.").addOption(OptionType.STRING, "guild_name", "The name of the guild you want to remove as an Ally.", true).queue();
         bot.upsertCommand("trackguild", "Track a guild to see its average online players.").addOption(OptionType.STRING, "guild_name", "The name of the guild you want to track.", true).queue();
         bot.upsertCommand("untrackguild", "No longer track a guild's online players.").addOption(OptionType.STRING, "guild_name", "The name of the guild you no longer want to track.", true).queue();
-        bot.upsertCommand("trackedguilds", "View the average number of online players for each tracked guild.").queue();
+
+        OptionData timezoneOptions = new OptionData(OptionType.STRING, "timezone", "The timezone to display active/dead hours in. Default UTC.")
+                .addChoice("BST", "BST")
+                .addChoice("EST", "EST")
+                .addChoice("GMT", "GMT")
+                .addChoice("PST", "PST");
+
+        bot.upsertCommand("trackedguilds", "View the average number of online players for each tracked guild.").addOptions(timezoneOptions).queue();
     }
 }
