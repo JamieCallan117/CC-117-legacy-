@@ -10,13 +10,15 @@ import net.dv8tion.jda.api.entities.Guild;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.Role;
 import net.dv8tion.jda.api.entities.channel.concrete.TextChannel;
+import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.events.guild.GuildReadyEvent;
 import net.dv8tion.jda.api.events.guild.member.GuildMemberJoinEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
+import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.exceptions.HierarchyException;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
-import org.jetbrains.annotations.NotNull;
+import net.dv8tion.jda.api.interactions.components.buttons.Button;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -59,6 +61,9 @@ public class EventListener extends ListenerAdapter {
     List<Role> rolesToAdd = new ArrayList<>();
     List<Role> rolesToRemove = new ArrayList<>();
     WynncraftPlayer player;
+    String trackedHeader = "";
+    List<String> trackedPages = new ArrayList<>();
+    int currentTrackedPage;
 
     /**
      * When bot starts in a server, set up file paths and start the thread to run updateOnlineAverage every hour and
@@ -66,7 +71,7 @@ public class EventListener extends ListenerAdapter {
      * @param event The event when a bot is ready in a guild.
      */
     @Override
-    public void onGuildReady(@NotNull GuildReadyEvent event) {
+    public void onGuildReady(GuildReadyEvent event) {
         super.onGuildReady(event);
 
         guildFile = new File("/home/opc/CC-117/" + event.getGuild().getId() + "/" + "guild.txt");
@@ -126,7 +131,7 @@ public class EventListener extends ListenerAdapter {
      * @param event The event of the member joining to get information from.
      */
     @Override
-    public void onGuildMemberJoin(@NotNull GuildMemberJoinEvent event) {
+    public void onGuildMemberJoin(GuildMemberJoinEvent event) {
         Role unverifiedRole = event.getGuild().getRoleById("1061791662541647913");
 
         if (unverifiedRole != null) {
@@ -153,7 +158,7 @@ public class EventListener extends ListenerAdapter {
     }
 
     @Override
-    public void onSlashCommandInteraction(@NotNull SlashCommandInteractionEvent event) {
+    public void onSlashCommandInteraction(SlashCommandInteractionEvent event) {
         super.onSlashCommandInteraction(event);
 
         if (event.getGuild() == null) {
@@ -266,12 +271,47 @@ public class EventListener extends ListenerAdapter {
                 OptionMapping timezoneOption = event.getOption("timezone");
 
                 if (timezoneOption == null) {
-                    event.getHook().sendMessage(trackedGuilds("UTC")).queue();
+                    event.getHook().sendMessage(trackedGuilds("UTC"))
+                            .addActionRow(
+                                    Button.primary("previousPage", Emoji.fromFormatted("⬅️")),
+                                    Button.primary("nextPage", Emoji.fromFormatted("➡️"))
+                            )
+                            .queue();
                 } else {
-                    event.getHook().sendMessage(trackedGuilds(timezoneOption.getAsString())).queue();
+                    event.getHook().sendMessage(trackedGuilds(timezoneOption.getAsString()))
+                            .addActionRow(
+                                    Button.primary("previousPage", Emoji.fromFormatted("⬅️")),
+                                    Button.primary("nextPage", Emoji.fromFormatted("➡️"))
+                            )
+                            .queue();
                 }
             }
             default -> event.reply("Unknown command.").setEphemeral(true).queue();
+        }
+    }
+
+    @Override
+    public void onButtonInteraction(ButtonInteractionEvent event) {
+        if (event.getComponentId().equals("nextPage")) {
+            if (trackedPages.size() == 1) {
+                event.editMessage(trackedHeader + trackedPages.get(0)).queue();
+            } else if (currentTrackedPage < trackedPages.size() - 1) {
+                event.editMessage(trackedHeader + trackedPages.get(currentTrackedPage + 1)).queue();
+                currentTrackedPage++;
+            } else if (currentTrackedPage == trackedPages.size() - 1) {
+                event.editMessage(trackedHeader + trackedPages.get(0)).queue();
+                currentTrackedPage = 0;
+            }
+        } else if (event.getComponentId().equals("previousPage")) {
+            if (trackedPages.size() == 1) {
+                event.editMessage(trackedHeader + trackedPages.get(0)).queue();
+            } else if (currentTrackedPage > 0) {
+                event.editMessage(trackedHeader + trackedPages.get(currentTrackedPage - 1)).queue();
+                currentTrackedPage--;
+            } else if (currentTrackedPage == 0) {
+                event.editMessage(trackedHeader + trackedPages.get(trackedPages.size() - 1)).queue();
+                currentTrackedPage = trackedPages.size() - 1;
+            }
         }
     }
 
@@ -933,7 +973,7 @@ public class EventListener extends ListenerAdapter {
 
                 Instant instant = Instant.now();
 
-                Files.write(Path.of("/home/opc/CC-117/" + guild.getId() + "/" + "tracked.txt"), (guildName + "," + currentMembers + "," + 1 + "," + instant.atZone(ZoneOffset.UTC).getHour() + "," + instant.atZone(ZoneOffset.UTC).getHour() + "\n").getBytes(), StandardOpenOption.APPEND);
+                Files.write(Path.of("/home/opc/CC-117/" + guild.getId() + "/" + "tracked.txt"), (guildName + "," + currentMembers + "," + 1 + "," + instant.atZone(ZoneOffset.UTC).getHour() + "," + instant.atZone(ZoneOffset.UTC).getHour() + "," + currentMembers + "," + currentMembers + "\n").getBytes(), StandardOpenOption.APPEND);
             } catch (java.io.IOException ex) {
                 return ex.toString();
             }
@@ -989,6 +1029,8 @@ public class EventListener extends ListenerAdapter {
             int currentGuildChecks;
             int currentGuildActiveHour;
             int currentGuildDeadHour;
+            int currentGuildHighestOnline;
+            int currentGuildLowestOnline;
             double newAverage;
 
             if (!trackedFile.exists()) {
@@ -1010,6 +1052,8 @@ public class EventListener extends ListenerAdapter {
                 currentGuildChecks = Integer.parseInt(lineSplit.get(2));
                 currentGuildActiveHour = Integer.parseInt(lineSplit.get(3));
                 currentGuildDeadHour = Integer.parseInt(lineSplit.get(4));
+                currentGuildHighestOnline = Integer.parseInt(lineSplit.get(5));
+                currentGuildLowestOnline = Integer.parseInt(lineSplit.get(6));
 
                 //Get current online count.
                 int onlineMembers = getOnlineMembers(wynnAPI.v1().guildStats(currentGuildName).run());
@@ -1024,16 +1068,18 @@ public class EventListener extends ListenerAdapter {
 
                 Instant instant = Instant.now();
 
-                if (onlineMembers >= currentGuildActiveHour) {
+                if (onlineMembers >= currentGuildHighestOnline) {
                     currentGuildActiveHour = instant.atZone(ZoneOffset.UTC).getHour();
+                    currentGuildHighestOnline = onlineMembers;
                 }
 
-                if (onlineMembers <= currentGuildDeadHour) {
+                if (onlineMembers <= currentGuildLowestOnline) {
                     currentGuildDeadHour = instant.atZone(ZoneOffset.UTC).getHour();
+                    currentGuildLowestOnline = onlineMembers;
                 }
 
                 //Make string ready to be saved.
-                currentLine = currentGuildName + "," + newAverage + "," + (currentGuildChecks + 1) + "," + currentGuildActiveHour + "," + currentGuildDeadHour;
+                currentLine = currentGuildName + "," + newAverage + "," + (currentGuildChecks + 1) + "," + currentGuildActiveHour + "," + currentGuildDeadHour + "," + currentGuildHighestOnline + "," + currentGuildLowestOnline;
 
                 //Write new average.
                 Files.write(Path.of("/home/opc/CC-117/" + guild.getId() + "/" + "temp.txt"), (currentLine + "\n").getBytes(), StandardOpenOption.APPEND);
@@ -1135,7 +1181,8 @@ public class EventListener extends ListenerAdapter {
      * @return The message to send back.
      */
     private String trackedGuilds(String timezone) {
-        StringBuilder guildAverages = new StringBuilder("```Guild Name          Average Online Members          Active Hour (" + timezone + ")    Dead Hour (" + timezone + ")\n------------------------------------------------------------------------------------------\n");
+        trackedHeader = "```Guild Name          Average Online Members          Active Hour (" + timezone + ")    Dead Hour (" + timezone + ")\n------------------------------------------------------------------------------------------\n";
+        StringBuilder guildAverages = new StringBuilder();
 
         try {
             Scanner scanner = new Scanner(trackedFile);
@@ -1169,18 +1216,27 @@ public class EventListener extends ListenerAdapter {
             //Sort the guilds by highest average online players.
             averageMembers.sort(Collections.reverseOrder());
 
+            int counter = 0;
+
             //Create the string message to be sent.
             for (GuildAverageMembers members : averageMembers) {
-                guildAverages.append(members.getAverageString());
-            }
+                if (counter == 10) {
+                    guildAverages.append("```");
+                    trackedPages.add(guildAverages.toString());
+                    guildAverages = new StringBuilder();
 
+                    guildAverages.append(members.getAverageString());
+                    counter = 1;
+                } else {
+                    guildAverages.append(members.getAverageString());
+                    counter++;
+                }
+            }
         } catch (java.io.IOException ex) {
             return "No tracked guilds found: " + ex;
         }
 
-        guildAverages.append("```");
-
-        return guildAverages.toString();
+        return trackedHeader + trackedPages.get(0);
     }
 
     /**
