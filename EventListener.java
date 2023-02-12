@@ -443,9 +443,9 @@ public class EventListener extends ListenerAdapter {
     private void RemoveOldButtons() {
         for (PagedMessage pm : pagedMessages) {
             pm.getMessage().editMessage(pm.getMessage().getContentRaw()).setComponents().queue();
-
-            pagedMessages.remove(pm);
         }
+
+        pagedMessages.clear();
     }
 
     /**
