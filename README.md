@@ -2,11 +2,11 @@
 
 This is a Discord bot for the Discord server containing the guild members of the Wynncraft MMORPG Minecraft server, Chiefs Of Corkus.
 The bot applies roles to the users based on their Discord username or nickname, whichever one matches the in-game username of a member of the guild.
-It also tracks the average number of players online to chosen guilds.
+It also tracks the average number of players online to chosen guilds and estimates their most and least active hours.
 
 ## Commands
 
-The bot currently features 8 commands, /setguild, /addally, /removeally, /updateranks, /verify, /trackguild, /untrackguild and /trackedguilds.
+The bot currently features 9 commands, /setguild, /addally, /removeally, /updateranks, /verify, /trackguild, /untrackguild /trackedguilds and /activehours.
 
 /setguild takes in 1 input which is the name of the guild to use as the current servers main guild. This will be used for applying roles to members of the Discord server.
 
@@ -26,6 +26,8 @@ rather than the whole server.
 /untrackguild takes in 1 input and removes a guild from the list of guilds to be tracked.
 
 /trackedguilds displays a formatted list of all of the tracked guilds, sorted from highest average online player count to lowest.
+
+/activehours takes in 2 inputs, with the first being the guild to view active hours for, this can be via a prefix or a case-insensitive version of the guild name. The second input is not required but is for the timezone you want to view the active hours in. The command will display a message of the active/dead hours for the guild and the average of players online during those hours who are at least the Captain rank in the guild.
 
 ## Wynncraft Public API
 
