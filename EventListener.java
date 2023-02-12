@@ -15,6 +15,7 @@ import net.dv8tion.jda.api.entities.emoji.Emoji;
 import net.dv8tion.jda.api.events.guild.GuildReadyEvent;
 import net.dv8tion.jda.api.events.guild.member.GuildMemberJoinEvent;
 import net.dv8tion.jda.api.events.guild.member.GuildMemberRemoveEvent;
+import net.dv8tion.jda.api.events.guild.member.update.GuildMemberUpdateNicknameEvent;
 import net.dv8tion.jda.api.events.interaction.command.SlashCommandInteractionEvent;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.exceptions.HierarchyException;
@@ -69,8 +70,8 @@ public class EventListener extends ListenerAdapter {
     List<PagedMessage> pagedMessages = new ArrayList<>();
 
     /**
-     * When bot starts in a server, set up file paths and start the thread to run updateOnlineAverage every hour and
-     * updateRanks every 12 hours.
+     * When bot starts in a server, set up file paths and start the thread to run updateOnlineAverage and
+     * updateRanks every hour. Also remove old messages from the pagedMessages list.
      * @param event The event when a bot is ready in a guild.
      */
     @Override
@@ -110,28 +111,37 @@ public class EventListener extends ListenerAdapter {
         }
 
         try {
+            //Run this every hour
             ScheduledExecutorService updateExecutor = Executors.newSingleThreadScheduledExecutor();
             updateExecutor.scheduleWithFixedDelay(() -> {
-                int currentMinute = Instant.now().atZone(ZoneOffset.UTC).getMinute();
 
-                if (currentMinute == 0) {
-                    System.out.println("Running at " + Instant.now().atZone(ZoneOffset.UTC).getHour() + ":" + currentMinute);
-                    updateOnlineAverage(event.getGuild());
-                    String response = updateRanks(event.getGuild());
+                //If currently on an exact hour, eg 13:00, 23:00 etc then enter the if statement.
+                if (Instant.now().atZone(ZoneOffset.UTC).getMinute() == 0) {
+                    //Thread to run the updateRanks and updateOnlineAverage methods.
+                    Thread updateRanks = new Thread(() -> {
+                        System.out.println("Running thread at " + Instant.now().atZone(ZoneOffset.UTC).getHour() + ":" + Instant.now().atZone(ZoneOffset.UTC).getMinute());
+                        String response = updateRanks(event.getGuild());
+                        updateOnlineAverage(event.getGuild());
 
-                    if (!response.equals("Updated roles for 0 members!")) {
-                        TextChannel channel = event.getGuild().getTextChannelById("1061698530651144212");
+                        if (!response.equals("Updated roles for 0 members!")) {
+                            TextChannel channel = event.getGuild().getTextChannelById("1061698530651144212");
 
-                        if (channel != null) {
-                            channel.sendMessage(response).queue();
+                            if (channel != null) {
+                                channel.sendMessage(response).queue();
+                            } else {
+                                System.out.println("Unable to find channel with ID: 1061698530651144212");
+                            }
                         } else {
-                            System.out.println("Unable to find channel with ID: 1061698530651144212");
+                            System.out.println(response);
                         }
-                    } else {
-                        System.out.println(response);
-                    }
 
-                    RemoveOldButtons();
+                        RemoveOldButtons();
+
+                        System.out.println("Finished running thread at " + Instant.now().atZone(ZoneOffset.UTC).getHour() + ":" + Instant.now().atZone(ZoneOffset.UTC).getMinute());
+                    });
+
+                    //Runs the thread.
+                    updateRanks.start();
                 }
             }, 0, 1, TimeUnit.MINUTES);
         }  catch (Exception ex) {
@@ -194,13 +204,17 @@ public class EventListener extends ListenerAdapter {
         }
 
         if (newChannel != null) {
-            //Send message to the verify channel mentioning the new member, then delete the message after 10 seconds.
+            //Send welcome message to the welcome channel.
             newChannel.sendMessage(event.getMember().getAsMention() + ", welcome to the official Chiefs Of Corkus guild Discord server! Watch out for the Mechs!").queue();
         } else {
             System.out.println("Could not locate verify channel with ID: 958833936186888262");
         }
     }
 
+    /**
+     * When a member of the Discord server leaves or is removed, send a message to the channel.
+     * @param event The remove event.
+     */
     @Override
     public void onGuildMemberRemove(GuildMemberRemoveEvent event) {
         TextChannel newChannel = event.getGuild().getTextChannelById("958833936186888262");
@@ -214,6 +228,67 @@ public class EventListener extends ListenerAdapter {
         }
     }
 
+    /**
+     * Handle Discord members changing their nicknames to ensure they aren't changing to someone who already
+     * exists in the server.
+     * @param event Nickname change event.
+     */
+    @Override
+    public void onGuildMemberUpdateNickname(GuildMemberUpdateNicknameEvent event) {
+        //Check if the nickname they want is in use.
+        if (!isValidNickname(event.getGuild(), event.getMember(), event.getNewNickname())) {
+            //If the nickname they wanted is already in use, either change back to their old nickname or change to
+            //their username if they didn't have a nickname before.
+            if (event.getOldNickname() != null) {
+                event.getMember().modifyNickname(event.getOldNickname()).queue();
+            } else {
+                event.getMember().modifyNickname(event.getMember().getUser().getName()).queue();
+            }
+        }
+    }
+
+    /**
+     * Determine if a nickname is in use or not, also used for /verify to check they aren't verifying as someone
+     * who already exists in the server.
+     * @param guild The current Discord server.
+     * @param member The member whose name is being changed.
+     * @param newNickname The name the member claims to be.
+     * @return True if the nickname is unique, false otherwise.
+     */
+    private boolean isValidNickname(Guild guild, Member member, String newNickname) {
+        List<Member> discordMembers = guild.getMembers();
+
+        //Check every member of the server.
+        for (Member discordMember : discordMembers) {
+            //Only check against members that aren't themselves.
+            if (discordMember != member) {
+                //Get their nickname.
+                String nickname = null;
+
+                if (discordMember.getNickname() != null) {
+                    nickname = discordMember.getNickname();
+                }
+
+                //If the nickname they want equals someone else nickname or username, then return false.
+                if (nickname == null) {
+                    if (discordMember.getUser().getName().equalsIgnoreCase(newNickname)) {
+                        return false;
+                    }
+                } else {
+                    if (nickname.equalsIgnoreCase(newNickname)) {
+                        return false;
+                    }
+                }
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Handles slash commands.
+     * @param event Slash command event.
+     */
     @Override
     public void onSlashCommandInteraction(SlashCommandInteractionEvent event) {
         super.onSlashCommandInteraction(event);
@@ -243,14 +318,20 @@ public class EventListener extends ListenerAdapter {
                 //Get the name of the player to be verified as.
                 if (playerNameOption != null) {
                     String playerName = playerNameOption.getAsString();
-                    String response = verify(playerName, event.getGuild(), event.getMember());
-                    event.getHook().sendMessage(response).setEphemeral(true).queue();
-                    TextChannel channel = event.getGuild().getTextChannelById("1061698530651144212");
 
-                    if (channel != null) {
-                        channel.sendMessage(response).queue();
+                    //Check that the player they want to be verified as doesn't already exist.
+                    if (!isValidNickname(event.getGuild(), event.getMember(), playerName)) {
+                        event.getHook().sendMessage("The name " + playerName + " is already verified, if you believe this is a mistake please message Owen_Rocks_3 or ShadowCat117.").setEphemeral(true).queue();
                     } else {
-                        System.out.println("Unable to find channel with ID: 1061698530651144212");
+                        String response = verify(playerName, event.getGuild(), event.getMember());
+                        event.getHook().sendMessage(response).setEphemeral(true).queue();
+                        TextChannel channel = event.getGuild().getTextChannelById("1061698530651144212");
+
+                        if (channel != null) {
+                            channel.sendMessage(response).queue();
+                        } else {
+                            System.out.println("Unable to find channel with ID: 1061698530651144212");
+                        }
                     }
                 } else {
                     event.getHook().sendMessage("Please enter a player name.").setEphemeral(true).queue();
@@ -356,6 +437,9 @@ public class EventListener extends ListenerAdapter {
         }
     }
 
+    /**
+     * Removes buttons from messages with them.
+     */
     private void RemoveOldButtons() {
         for (PagedMessage pm : pagedMessages) {
             pm.getMessage().editMessage(pm.getMessage().getContentRaw()).setComponents().queue();
@@ -364,11 +448,16 @@ public class EventListener extends ListenerAdapter {
         }
     }
 
+    /**
+     * When a button on a message is clicked.
+     * @param event Button interaction event.
+     */
     @Override
     public void onButtonInteraction(ButtonInteractionEvent event) {
         String id = event.getMessageId();
         PagedMessage currentMessage = null;
 
+        //Find the PagedMessage object for the interacted message.
         for (PagedMessage pm : pagedMessages) {
             if (pm.getMessage().getId().equals(id)) {
                 currentMessage = pm;
@@ -376,10 +465,14 @@ public class EventListener extends ListenerAdapter {
             }
         }
 
+        //If the message is older than an hour, or bot has been restarted since original command
+        //was run, display this message.
         if (currentMessage == null) {
+            event.editMessage("Data expired, please run /trackedguilds again.").queue();
             return;
         }
 
+        //Get new page of contents.
         if (event.getComponentId().equals("nextPage")) {
             if (currentMessage.pageCount() == 1) {
                 event.editMessage(currentMessage.getPage(0)).queue();
@@ -410,6 +503,7 @@ public class EventListener extends ListenerAdapter {
      * @return The message to be sent as a response to the command.
      */
     private String updateRanks(Guild guild) {
+        System.out.println("Updating ranks");
         List<Member> discordMembers = new ArrayList<>();
         List<String> updatedMembers = new ArrayList<>();
 
@@ -1108,7 +1202,13 @@ public class EventListener extends ListenerAdapter {
         }
     }
 
+    /**
+     * Saves the guild prefix to a file so that when some commands are ran, they don't require the full guild name.
+     * @param guildName The name of the Wynncraft guild.
+     * @param guild The current Discord server.
+     */
     private void saveGuildPrefix(String guildName, Guild guild)  {
+        //Retrieves the guild prefix.
         String prefix = wynnAPI.v1().guildStats(guildName).run().getPrefix();
 
         try {
@@ -1122,6 +1222,7 @@ public class EventListener extends ListenerAdapter {
                 System.out.println("File already exists.");
             }
 
+            //Writes the guild name followed by its prefix to the file.
             Files.write(Path.of("/home/opc/CC-117/" + guild.getId() + "/" + "prefixes.txt"), (guildName + "," + prefix + "\n").getBytes(), StandardOpenOption.APPEND);
         } catch (IOException ex) {
             ex.printStackTrace();
@@ -1157,6 +1258,11 @@ public class EventListener extends ListenerAdapter {
         return currentlyOnline;
     }
 
+    /**
+     * Gets the number of players online in a guild that are at least the captain rank.
+     * @param guild The Wynncraft guild to check.
+     * @return The number of online captain's or above.
+     */
     private int getOnlineCaptains(WynncraftGuild guild) {
         int currentlyOnline = 0;
         List<String> guildMembersNames = new ArrayList<>();
@@ -1179,6 +1285,7 @@ public class EventListener extends ListenerAdapter {
             }
         }
 
+        //Loops through all members and sees if they have the captain rank or above.
         for (WynncraftGuildMember member : guild.getMembers()) {
             if (onlineGuildMembersNames.contains(member.getName())) {
                 if (member.getRank() == GuildRank.OWNER || member.getRank() == GuildRank.CHIEF || member.getRank() == GuildRank.STRATEGIST || member.getRank() == GuildRank.CAPTAIN) {
@@ -1299,7 +1406,7 @@ public class EventListener extends ListenerAdapter {
             TextChannel channel = guild.getTextChannelById("1061698530651144212");
 
             if (channel != null) {
-                channel.sendMessage("Checks the logs, something broke").queue();
+                channel.sendMessage("Check the logs, something broke").queue();
             }
 
             File logFile = new File("/home/opc/CC-117/" + guild.getId() + "/" + "logs.txt");
@@ -1312,7 +1419,7 @@ public class EventListener extends ListenerAdapter {
                 }
 
                 FileWriter logFileWriter = new FileWriter("/home/opc/CC-117/" + guild.getId() + "/" + "logs.txt");
-                logFileWriter.write(String.valueOf(ex));
+                logFileWriter.write(String.valueOf(ex.getMessage()));
                 logFileWriter.close();
             } catch (java.io.IOException exx) {
                 exx.printStackTrace();
@@ -1322,6 +1429,12 @@ public class EventListener extends ListenerAdapter {
         System.out.println("Averages updated");
     }
 
+    /**
+     * Displays the active hours for the specified guild.
+     * @param guildName The guild to check.
+     * @param timezone The timezone to view the active hours in.
+     * @return The string message to display.
+     */
     private String activeHours(String guildName, String timezone) {
         try {
             Scanner scanner = new Scanner(trackedFile);
@@ -1335,6 +1448,7 @@ public class EventListener extends ListenerAdapter {
 
             guildName = findGuild(guildName);
 
+            //Find the guild in tracked guilds file.
             while(scanner.hasNextLine()) {
                 currentLine = scanner.nextLine();
 
@@ -1350,8 +1464,10 @@ public class EventListener extends ListenerAdapter {
                 return guildName + " is not being tracked";
             }
 
+            //Creates the message to be displayed.
             message.append(guildName).append(" active/dead hours (").append(timezone).append(")\n\n");
 
+            //Get the hours and captains online for the guild.
             String tempHours = Arrays.asList(guildLine.split(",")).get(3);
             String tempCaptains = Arrays.asList(guildLine.split(",")).get(4);
 
@@ -1361,9 +1477,11 @@ public class EventListener extends ListenerAdapter {
             tempCaptains = tempCaptains.replace("(", "");
             tempCaptains = tempCaptains.replace(")", "");
 
+            //Convert hours and captains online to list.
             List<String> onlineHoursStr = Arrays.asList(tempHours.split(";"));
             List<String> onlineCaptainsStr = Arrays.asList(tempCaptains.split(";"));
 
+            //Convert to list of integers.
             List<Integer> onlineHours = onlineHoursStr.stream().map(Integer::parseInt).toList();
             List<Integer> onlineCaptains = onlineCaptainsStr.stream().map(Integer::parseInt).toList();
 
@@ -1375,12 +1493,14 @@ public class EventListener extends ListenerAdapter {
                 int maximumOnline = -1;
                 int minimumOnline = Integer.MAX_VALUE;
 
+                //Find peak activity.
                 for (int online : onlineHours) {
                     if (online > maximumOnline) {
                         maximumOnline = online;
                     }
                 }
 
+                //Find lowest activity.
                 for (int online : onlineHours) {
                     if (online != -1 && online < minimumOnline) {
                         minimumOnline = online;
@@ -1390,12 +1510,14 @@ public class EventListener extends ListenerAdapter {
                 List<Integer> maxIndices = new ArrayList<>();
                 List<Integer> minIndices = new ArrayList<>();
 
+                //Find hours with peak activity.
                 for (int i = 0; i < onlineHours.size(); i++) {
                     if (onlineHours.get(i) == maximumOnline) {
                         maxIndices.add(i);
                     }
                 }
 
+                //Find hours with least activity.
                 for (int i = 0; i < onlineHours.size(); i++) {
                     if (onlineHours.get(i) == minimumOnline) {
                         minIndices.add(i);
@@ -1408,16 +1530,20 @@ public class EventListener extends ListenerAdapter {
                 List<Integer> maxCaptains = new ArrayList<>();
                 List<Integer> minCaptains = new ArrayList<>();
 
+                //Handle different timezones.
                 if (timezone.equals("UTC")) {
 
+                    //Add captains online at peak hours.
                     for (Integer maxIndex : maxIndices) {
                         maxCaptains.add(onlineCaptains.get(maxIndex));
                     }
 
+                    //Add captains online at dead hours.
                     for (Integer minIndex : minIndices) {
                         minCaptains.add(onlineCaptains.get(minIndex));
                     }
 
+                    //Calculate average captains online.
                     int maxCaptainsSum = maxCaptains.stream().mapToInt(Integer::intValue).sum();
                     int minCaptainsSum = minCaptains.stream().mapToInt(Integer::intValue).sum();
 
@@ -1426,6 +1552,7 @@ public class EventListener extends ListenerAdapter {
 
                     message.append("Active Hours (").append(maximumOnline).append(" players online)\n");
 
+                    //Add active hours to message.
                     for (int i = 0; i < maxIndices.size(); i++) {
                         message.append(maxIndices.get(i)).append(":00");
 
@@ -1438,6 +1565,7 @@ public class EventListener extends ListenerAdapter {
 
                     message.append("Dead Hours (").append(minimumOnline).append(" players online)\n");
 
+                    //Add dead hours to message.
                     for (int i = 0; i < minIndices.size(); i++) {
                         message.append(minIndices.get(i)).append(":00");
 
@@ -1465,6 +1593,7 @@ public class EventListener extends ListenerAdapter {
 
                     message.append("Active Hours (").append(maximumOnline).append(" players online)\n");
 
+                    //Applies the selected timezone
                     applyTimezone(maxIndices, timezone);
 
                     for (int i = 0; i < maxIndices.size(); i++) {
@@ -1502,6 +1631,11 @@ public class EventListener extends ListenerAdapter {
         }
     }
 
+    /**
+     * Applies the timezone to list of active hours.
+     * @param times The hours to convert.
+     * @param timezone The timezone to convert to.
+     */
     private void applyTimezone(List<Integer> times, String timezone) {
         switch (timezone) {
             case "BST" -> {
@@ -1562,8 +1696,15 @@ public class EventListener extends ListenerAdapter {
         }
     }
 
+    /**
+     * Takes an input from a guild name command and sees if it matches a guild in the file ignoring case or seeing if
+     * it's a prefix.
+     * @param input The guild to find.
+     * @return The case-sensitive guild name.
+     */
     private String findGuild(String input) {
         try {
+            //See if the guild name is valid, otherwise the exception will be caught.
             return wynnAPI.v1().guildStats(input).run().getName();
         } catch (APIResponseException ex) {
             try {
@@ -1572,6 +1713,8 @@ public class EventListener extends ListenerAdapter {
                 String currentName;
                 String currentPrefix;
 
+                //Loop through the file and see if the input matches the guild name or prefix ignoring case and if so
+                //return the name in the file.
                 while(scanner.hasNextLine()) {
                     currentLine = scanner.nextLine();
                     currentName = Arrays.asList(currentLine.split(",")).get(0);
