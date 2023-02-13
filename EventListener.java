@@ -1431,11 +1431,11 @@ public class EventListener extends ListenerAdapter {
 
     /**
      * Displays the active hours for the specified guild.
-     * @param guildName The guild to check.
+     * @param inputGuild The guild to check.
      * @param timezone The timezone to view the active hours in.
      * @return The string message to display.
      */
-    private String activeHours(String guildName, String timezone) {
+    private String activeHours(String inputGuild, String timezone) {
         try {
             Scanner scanner = new Scanner(trackedFile);
             String currentLine;
@@ -1446,7 +1446,7 @@ public class EventListener extends ListenerAdapter {
                 return "No guilds are being tracked";
             }
 
-            guildName = findGuild(guildName);
+            String guildName = findGuild(inputGuild);
 
             //Find the guild in tracked guilds file.
             while(scanner.hasNextLine()) {
@@ -1461,7 +1461,7 @@ public class EventListener extends ListenerAdapter {
             scanner.close();
 
             if (guildLine.equals("")) {
-                return guildName + " is not being tracked";
+                return inputGuild + " is not being tracked";
             }
 
             //Creates the message to be displayed.
