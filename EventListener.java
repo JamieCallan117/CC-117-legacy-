@@ -22,6 +22,7 @@ import net.dv8tion.jda.api.exceptions.HierarchyException;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.commands.OptionMapping;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
+import net.dv8tion.jda.api.utils.FileUpload;
 
 import java.io.*;
 import java.math.RoundingMode;
@@ -68,6 +69,7 @@ public class EventListener extends ListenerAdapter {
     List<Role> rolesToRemove = new ArrayList<>();
     WynncraftPlayer player;
     List<PagedMessage> pagedMessages = new ArrayList<>();
+    private WynncraftOnlinePlayers onlineServers;
 
     /**
      * When bot starts in a server, set up file paths and start the thread to run updateOnlineAverage and
@@ -110,6 +112,9 @@ public class EventListener extends ListenerAdapter {
             System.out.println("Unable to create directory for guild: " + event.getGuild().getId());
         }
 
+        //Run once on start
+        updateOnlinePlayers();
+
         try {
             //Run this every hour
             ScheduledExecutorService updateExecutor = Executors.newSingleThreadScheduledExecutor();
@@ -121,6 +126,8 @@ public class EventListener extends ListenerAdapter {
                     Thread updateRanks = new Thread(() -> {
                         System.out.println("Running thread at " + Instant.now().atZone(ZoneOffset.UTC).getHour() + ":" + Instant.now().atZone(ZoneOffset.UTC).getMinute());
                         String response = updateRanks(event.getGuild());
+                        //Run this here to ensure it's updated before online average is calculated again.
+                        updateOnlinePlayers();
                         updateOnlineAverage(event.getGuild());
 
                         if (!response.equals("Updated roles for 0 members!")) {
@@ -142,6 +149,18 @@ public class EventListener extends ListenerAdapter {
 
                     //Runs the thread.
                     updateRanks.start();
+                }
+
+                //If at xx:20 or xx:40 run this
+                if (Instant.now().atZone(ZoneOffset.UTC).getMinute() == 20 || Instant.now().atZone(ZoneOffset.UTC).getMinute() == 40) {
+                    Thread updateOnlinePlayers = new Thread(() -> {
+                        updateOnlinePlayers();
+
+                        System.out.println("Updating online players at: " + Instant.now().atZone(ZoneOffset.UTC).getHour() + ":" + Instant.now().atZone(ZoneOffset.UTC).getMinute());
+                    });
+
+                    //Runs the thread.
+                    updateOnlinePlayers.start();
                 }
             }, 0, 1, TimeUnit.MINUTES);
         }  catch (Exception ex) {
@@ -531,6 +550,7 @@ public class EventListener extends ListenerAdapter {
 
                     if (member.getNickname() != null) {
                         nick = member.getNickname();
+                        nick = nick.split(" \\[")[0];
                     }
 
                     if (mainGuild.getMembers()[i].getName().equalsIgnoreCase(member.getUser().getName()) || mainGuild.getMembers()[i].getName().toLowerCase().equalsIgnoreCase(nick)) {
@@ -601,7 +621,7 @@ public class EventListener extends ListenerAdapter {
                         }
 
                         //Set player roles and determine if changes were made.
-                        rolesUpdated = setPlayerRoles(rolesUpdated, hasUpdated, member, uuid);
+                        hasUpdated = setPlayerRoles(rolesUpdated, hasUpdated, member, uuid);
 
                         //Update their Discord roles.
                         guild.modifyMemberRoles(member, rolesToAdd, rolesToRemove).queue();
@@ -610,6 +630,7 @@ public class EventListener extends ListenerAdapter {
                         discordMembers.remove(member);
 
                         if (hasUpdated) {
+                            rolesUpdated++;
                             updatedMembers.add(member.getUser().getName());
                         }
 
@@ -629,6 +650,7 @@ public class EventListener extends ListenerAdapter {
 
                         if (member.getNickname() != null) {
                             nick = member.getNickname();
+                            nick = nick.split(" \\[")[0];
                         }
 
                         if (allyGuild.getMembers()[j].getName().equalsIgnoreCase(member.getUser().getName()) || allyGuild.getMembers()[j].getName().toLowerCase().equalsIgnoreCase(nick)) {
@@ -639,9 +661,11 @@ public class EventListener extends ListenerAdapter {
                             rolesToRemove.add(memberOfRole);
                             rolesToRemove.add(unverifiedRole);
 
+                            String suffix = findGuildTag(allyGuild.getName());
+
                             //Attempt to change nickname.
                             try {
-                                member.modifyNickname(allyGuild.getMembers()[j].getName()).queue();
+                                member.modifyNickname(allyGuild.getMembers()[j].getName() + " [" + suffix + "]").queue();
                                 System.out.println("Verified " + member.getUser().getName() + " as Ally Guild member " + allyGuild.getMembers()[j].getName());
                             } catch (HierarchyException e) {
                                 System.out.println("Verified " + member.getUser().getName() + " as Ally Guild member " + allyGuild.getMembers()[j].getName() + "(Could not change nickname)");
@@ -671,7 +695,7 @@ public class EventListener extends ListenerAdapter {
                             }
 
                             //Set player roles and determine if changes were made.
-                            rolesUpdated = setPlayerRoles(rolesUpdated, hasUpdated, member, uuid);
+                            hasUpdated = setPlayerRoles(rolesUpdated, hasUpdated, member, uuid);
 
                             //Remove from the list as no longer need to be verified.
                             discordMembers.remove(member);
@@ -680,6 +704,7 @@ public class EventListener extends ListenerAdapter {
                             guild.modifyMemberRoles(member, rolesToAdd, rolesToRemove).queue();
 
                             if (hasUpdated) {
+                                rolesUpdated++;
                                 updatedMembers.add(member.getUser().getName());
                             }
 
@@ -741,6 +766,7 @@ public class EventListener extends ListenerAdapter {
 
         boolean verified = false;
         boolean isAlly = false;
+        String suffix = "";
 
         //Loops through all guild members.
         for (int i = 0; i < mainGuild.getMembers().length; i++) {
@@ -818,6 +844,8 @@ public class EventListener extends ListenerAdapter {
                         rolesToAdd.clear();
                         rolesToRemove.clear();
 
+                        suffix = findGuildTag(allyGuild.getName());
+
                         verified = true;
                         isAlly = true;
 
@@ -872,7 +900,7 @@ public class EventListener extends ListenerAdapter {
         //Determine bot response message.
         if (isAlly) {
             try {
-                member.modifyNickname(playerName).queue();
+                member.modifyNickname(playerName + " [" + suffix + "]").queue();
                 return "Verified " + member.getUser().getName() + " as Ally Guild member " + playerName;
             } catch (Exception e) {
                 return "Verified " + member.getUser().getName() + " as Ally Guild member " + playerName + "(Could not change nickname)";
@@ -895,7 +923,7 @@ public class EventListener extends ListenerAdapter {
      * @param uuid The UUID or the given member.
      * @return The updated value of rolesUpdated if changed, otherwise the same.
      */
-    private int setPlayerRoles(int rolesUpdated, boolean hasUpdated, Member member, String uuid) {
+    private boolean setPlayerRoles(int rolesUpdated, boolean hasUpdated, Member member, String uuid) {
         //Sets the player currently being used to get roles.
         SetPlayer(uuid);
 
@@ -939,11 +967,7 @@ public class EventListener extends ListenerAdapter {
             }
         }
 
-        if (hasUpdated) {
-            rolesUpdated += 1;
-        }
-
-        return rolesUpdated;
+        return hasUpdated;
     }
 
     /**
@@ -1229,6 +1253,10 @@ public class EventListener extends ListenerAdapter {
         }
     }
 
+    private void updateOnlinePlayers() {
+        onlineServers = wynnAPI.v1().onlinePlayers().run();
+    }
+
     /**
      * Gets the number of people currently online in a specific guild.
      * @param guild The guild to check.
@@ -1242,9 +1270,6 @@ public class EventListener extends ListenerAdapter {
         for (WynncraftGuildMember player : guild.getMembers()) {
             guildMembersNames.add(player.getName());
         }
-
-        //Gets all the players on each server on Wynncraft.
-        WynncraftOnlinePlayers onlineServers = wynnAPI.v1().onlinePlayers().run();
 
         //Loops through each server and then loops through the players on that server to see if they are in the guild.
         for (WynncraftServerOnlinePlayers onlineServer : onlineServers.getOnlinePlayers()) {
@@ -1272,9 +1297,6 @@ public class EventListener extends ListenerAdapter {
         for (WynncraftGuildMember player : guild.getMembers()) {
             guildMembersNames.add(player.getName());
         }
-
-        //Gets all the players on each server on Wynncraft.
-        WynncraftOnlinePlayers onlineServers = wynnAPI.v1().onlinePlayers().run();
 
         //Loops through each server and then loops through the players on that server to see if they are in the guild.
         for (WynncraftServerOnlinePlayers onlineServer : onlineServers.getOnlinePlayers()) {
@@ -1405,10 +1427,6 @@ public class EventListener extends ListenerAdapter {
 
             TextChannel channel = guild.getTextChannelById("1061698530651144212");
 
-            if (channel != null) {
-                channel.sendMessage("Check the logs, something broke").queue();
-            }
-
             File logFile = new File("/home/opc/CC-117/" + guild.getId() + "/" + "logs.txt");
 
             try {
@@ -1416,11 +1434,25 @@ public class EventListener extends ListenerAdapter {
                     System.out.println("File created.");
                 } else {
                     System.out.println("File already exists.");
+                    return;
                 }
 
-                FileWriter logFileWriter = new FileWriter("/home/opc/CC-117/" + guild.getId() + "/" + "logs.txt");
-                logFileWriter.write(String.valueOf(ex.getMessage()));
-                logFileWriter.close();
+                FileOutputStream file = new FileOutputStream(logFile);
+
+                PrintStream output = new PrintStream(file);
+
+                ex.printStackTrace(output);
+
+                if (channel != null) {
+                    FileUpload upload = FileUpload.fromData(new FileInputStream("/home/opc/CC-117/" + guild.getId() + "/" + "logs.txt"), "logs.txt");
+                    channel.sendMessage("Something broke :(").addFiles(upload).queue();
+                }
+
+                if (tempFile.delete()) {
+                    System.out.println("Temp file deleted successfully.");
+                } else {
+                    System.out.println("Unable to delete temp file.");
+                }
             } catch (java.io.IOException exx) {
                 exx.printStackTrace();
             }
@@ -1737,6 +1769,34 @@ public class EventListener extends ListenerAdapter {
             } catch (FileNotFoundException exx) {
                 return null;
             }
+        }
+    }
+
+    private String findGuildTag(String input) {
+        try {
+            Scanner scanner = new Scanner(prefixFile);
+            String currentLine;
+            String currentName;
+            String currentPrefix;
+
+            //Loop through the file and see if the input matches the guild name or prefix ignoring case and if so
+            //return the prefix in the file.
+            while(scanner.hasNextLine()) {
+                currentLine = scanner.nextLine();
+                currentName = Arrays.asList(currentLine.split(",")).get(0);
+                currentPrefix = Arrays.asList(currentLine.split(",")).get(1);
+
+                if (input.equalsIgnoreCase(currentName)) {
+                    scanner.close();
+                    return currentPrefix;
+                }
+            }
+
+            scanner.close();
+
+            return null;
+        } catch (FileNotFoundException exx) {
+            return null;
         }
     }
 
