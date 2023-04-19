@@ -2,11 +2,11 @@
 
 This is a Discord bot for the Discord server containing the guild members of the Wynncraft MMORPG Minecraft server, Chiefs Of Corkus.
 The bot applies roles to the users based on their Discord username or nickname, whichever one matches the in-game username of a member of the guild.
-It also tracks the average number of players online to chosen guilds and estimates their most and least active hours.
+It also tracks the average number of players online to chosen guilds and estimates their most and least active hours. You can also see how many days it has been since each member of a guild logged in.
 
 ## Commands
 
-The bot currently features 9 commands, /setguild, /addally, /removeally, /updateranks, /verify, /trackguild, /untrackguild /trackedguilds and /activehours.
+The bot currently features 11 commands, /setguild, /addally, /removeally, /updateranks, /verify, /trackguild, /untrackguild, /trackedguilds, /activehours, /lastlogins and /updateprefixes.
 
 /setguild takes in 1 input which is the name of the guild to use as the current servers main guild. This will be used for applying roles to members of the Discord server.
 
@@ -29,7 +29,11 @@ rather than the whole server.
 
 /activehours takes in 2 inputs, with the first being the guild to view active hours for, this can be via a prefix or a case-insensitive version of the guild name. The second input is not required but is for the timezone you want to view the active hours in. The command will display a message of the active/dead hours for the guild and the average of players online during those hours who are at least the Captain rank in the guild.
 
+/lastlogins takes in 1 input which is the name of the guild for which you want o see how many days it has been since the last login of each member. For our guild, this also highlights members in red if they are past the given threshold for inactivity and should be removed from the guild.
+
+/updateprefixes uses the list of all guilds to add the guild prefixes to the file so that that guild can easily be used in other commands without having to type the full name. It adds as many as it can to the file before hitting the API request limit.
+
 ## Wynncraft Public API
 
 The bot reads the data from the Wynncraft Public API, docs located here: https://docs.wynncraft.com/
-It reads data relating to guilds, and their members, including their guild rank, personal rank and veteran status.
+It reads data relating to guilds, and their members, including their guild rank, personal rank, veteran status and last login date.
