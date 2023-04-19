@@ -1,7 +1,9 @@
+package MessageObjects;
+
 import java.math.RoundingMode;
 import java.text.DecimalFormat;
 
-public class GuildAverageMembers implements Comparable<GuildAverageMembers>{
+public class GuildAverageMembers implements Comparable<GuildAverageMembers> {
     private final String name;
     private final double average;
     private final int currentlyOnline;

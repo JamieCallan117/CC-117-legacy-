@@ -1,3 +1,6 @@
+package DiscordBot;
+
+import EventListener.EventListener;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.entities.Activity;
@@ -5,7 +8,7 @@ import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 
-public class DiscordBot {
+public class Bot {
     public static void main(String[] args) {
         //Gets the token object to retrieve bot token.
         Token token = new Token();
@@ -35,5 +38,7 @@ public class DiscordBot {
                 .addChoice("PST", "PST");
 
         bot.upsertCommand("activehours", "View the active/dead hours for each tracked guilds.").addOption(OptionType.STRING, "guild_name", "The name of the guild you want to see active/dead hours for.", true).addOptions(timezoneOptions).queue();
+        bot.upsertCommand("lastlogins", "View the last time each member of a guild logged in.").addOption(OptionType.STRING, "guild_name", "The name of the guild you want to see last logins for.", true).queue();
+        bot.upsertCommand("updateprefixes", "Updates the list of all guild prefixes.").queue();
     }
 }

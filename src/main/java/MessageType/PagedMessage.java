@@ -1,3 +1,5 @@
+package MessageType;
+
 import net.dv8tion.jda.api.entities.Message;
 
 import java.util.List;
@@ -42,7 +44,7 @@ public class PagedMessage {
             return pages.get(index);
         } catch (NullPointerException ex) {
             ex.printStackTrace();
-            return "No tracked guilds";
+            return "No data available";
         }
     }
 
