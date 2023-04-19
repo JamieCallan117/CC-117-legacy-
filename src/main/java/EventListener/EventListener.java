@@ -181,9 +181,9 @@ public class EventListener extends ListenerAdapter {
 
             try {
                 if (logFile.createNewFile()) {
-//                    System.out.println("File created.");
+                    System.out.println("Log file created.");
                 } else {
-//                    System.out.println("File already exists.");
+                    System.out.println("Log file already exists.");
                 }
 
                 FileWriter logFileWriter = new FileWriter("/home/opc/CC-117/" + event.getGuild().getId() + "/" + "logs.txt");
@@ -555,7 +555,7 @@ public class EventListener extends ListenerAdapter {
      * @return The message to be sent as a response to the command.
      */
     private String updateRanks(Guild guild) {
-//        System.out.println("Updating ranks");
+        System.out.println("Updating ranks");
         List<Member> discordMembers = new ArrayList<>();
         List<String> updatedMembers = new ArrayList<>();
 
@@ -597,11 +597,13 @@ public class EventListener extends ListenerAdapter {
                         rolesToRemove.add(allyOwnerRole);
 
                         //Attempt to change the nickname of the user to match their Wynncraft name.
-                        try {
-                            member.modifyNickname(mainGuild.getMembers()[i].getName()).queue();
-//                            System.out.println("Verified " + member.getUser().getName() + " as Guild member " + mainGuild.getMembers()[i].getName());
-                        } catch (HierarchyException e) {
-//                            System.out.println("Verified " + member.getUser().getName() + " as Guild member " + mainGuild.getMembers()[i].getName() + "(Could not change nickname)");
+                        if (!member.getEffectiveName().equals(mainGuild.getMembers()[i].getName())) {
+                            try {
+                                member.modifyNickname(mainGuild.getMembers()[i].getName()).queue();
+                                System.out.println("Verified " + member.getUser().getName() + " as Guild member " + mainGuild.getMembers()[i].getName());
+                            } catch (HierarchyException e) {
+                                System.out.println("Verified " + member.getUser().getName() + " as Guild member " + mainGuild.getMembers()[i].getName() + "(Could not change nickname)");
+                            }
                         }
 
                         hasUpdated = false;
@@ -654,7 +656,7 @@ public class EventListener extends ListenerAdapter {
                         }
 
                         //Set player roles and determine if changes were made.
-                        hasUpdated = setPlayerRoles(rolesUpdated, hasUpdated, member, uuid);
+                        hasUpdated = setPlayerRoles(hasUpdated, member, uuid);
 
                         //Update their Discord roles.
                         guild.modifyMemberRoles(member, rolesToAdd, rolesToRemove).queue();
@@ -697,11 +699,13 @@ public class EventListener extends ListenerAdapter {
                             String suffix = findGuildTag(allyGuild.getName());
 
                             //Attempt to change nickname.
-                            try {
-                                member.modifyNickname(allyGuild.getMembers()[j].getName() + " [" + suffix + "]").queue();
-//                                System.out.println("Verified " + member.getUser().getName() + " as Ally Guild member " + allyGuild.getMembers()[j].getName());
-                            } catch (HierarchyException e) {
-//                                System.out.println("Verified " + member.getUser().getName() + " as Ally Guild member " + allyGuild.getMembers()[j].getName() + "(Could not change nickname)");
+                            if (!member.getEffectiveName().equals(allyGuild.getMembers()[j].getName())) {
+                                try {
+                                    member.modifyNickname(allyGuild.getMembers()[j].getName() + " [" + suffix + "]").queue();
+                                    System.out.println("Verified " + member.getUser().getName() + " as Ally Guild member " + allyGuild.getMembers()[j].getName());
+                                } catch (HierarchyException e) {
+                                    System.out.println("Verified " + member.getUser().getName() + " as Ally Guild member " + allyGuild.getMembers()[j].getName() + "(Could not change nickname)");
+                                }
                             }
 
                             hasUpdated = false;
@@ -728,7 +732,7 @@ public class EventListener extends ListenerAdapter {
                             }
 
                             //Set player roles and determine if changes were made.
-                            hasUpdated = setPlayerRoles(rolesUpdated, hasUpdated, member, uuid);
+                            hasUpdated = setPlayerRoles(hasUpdated, member, uuid);
 
                             //Remove from the list as no longer need to be verified.
                             discordMembers.remove(member);
@@ -950,13 +954,12 @@ public class EventListener extends ListenerAdapter {
 
     /**
      * Sets the player roles for a given member.
-     * @param rolesUpdated How many roles have currently been updated.
      * @param hasUpdated Whether this member has already been updated.
      * @param member The member being updated.
      * @param uuid The UUID or the given member.
      * @return The updated value of rolesUpdated if changed, otherwise the same.
      */
-    private boolean setPlayerRoles(int rolesUpdated, boolean hasUpdated, Member member, String uuid) {
+    private boolean setPlayerRoles(boolean hasUpdated, Member member, String uuid) {
         //Sets the player currently being used to get roles.
         SetPlayer(uuid);
 
@@ -1077,8 +1080,6 @@ public class EventListener extends ListenerAdapter {
                     WynncraftGuild allyGuild = wynnAPI.v1().guildStats(scanner.nextLine()).run();
 
                     allyGuilds.add(allyGuild);
-
-//                    System.out.println("Added Ally guild " + allyGuild.getName());
                 }
 
                 scanner.close();
@@ -1198,9 +1199,9 @@ public class EventListener extends ListenerAdapter {
                 Files.createDirectories(Path.of("/home/opc/CC-117/" + guild.getId()));
 
                 if (trackedFile.createNewFile()) {
-//                    System.out.println("File created.");
+                    System.out.println("Tracked file created.");
                 } else {
-//                    System.out.println("File already exists.");
+                    System.out.println("Tracked file already exists.");
                 }
 
                 Scanner scanner = new Scanner(trackedFile);
@@ -1272,13 +1273,13 @@ public class EventListener extends ListenerAdapter {
 
         try {
             if (!prefixFile.exists()) {
-//                System.out.println("No file exists.");
+                System.out.println("Prefix file does not exist.");
             }
 
             if (prefixFile.createNewFile()) {
-//                System.out.println("File created.");
+                System.out.println("Prefix file created.");
             } else {
-//                System.out.println("File already exists.");
+                System.out.println("Prefix file already exists.");
             }
 
             //Writes the guild name followed by its prefix to the file.
@@ -1293,13 +1294,13 @@ public class EventListener extends ListenerAdapter {
 
         try {
             if (!prefixFile.exists()) {
-//                System.out.println("No file exists");
+                System.out.println("Prefix file does not exist.");
             }
 
             if (prefixFile.createNewFile()) {
-//                System.out.println("File created");
+                System.out.println("Prefix file created");
             } else {
-//                System.out.println("File already exists");
+                System.out.println("Prefix file already exists");
             }
 
             Scanner scanner = new Scanner(prefixFile);
@@ -1332,8 +1333,6 @@ public class EventListener extends ListenerAdapter {
                         System.out.println("Rate limit exceeded");
                         break;
                     }
-                } else {
-                    System.out.println(guildName + " already added.");
                 }
 
                 prefixExists = false;
@@ -1433,13 +1432,13 @@ public class EventListener extends ListenerAdapter {
             List<Integer> onlineCaptains;
 
             if (!trackedFile.exists()) {
-//                System.out.println("No file exists.");
+                System.out.println("Tracked file does not exist.");
             }
 
             if (tempFile.createNewFile()) {
-//                System.out.println("File created.");
+                System.out.println("Temp file created.");
             } else {
-//                System.out.println("File already exists.");
+                System.out.println("Temp file already exists.");
             }
 
             //Loop through each line in file, get the guild name, current average and how many times the average has been checked.
@@ -1518,7 +1517,7 @@ public class EventListener extends ListenerAdapter {
             renameTrackedFile();
 
         } catch (java.io.IOException ex) {
-//            System.out.println("Error accessing file");
+            System.out.println("Error accessing file");
         } catch (Exception ex) {
             ex.printStackTrace();
 
@@ -1528,9 +1527,9 @@ public class EventListener extends ListenerAdapter {
 
             try {
                 if (logFile.createNewFile()) {
-//                    System.out.println("File created.");
+                    System.out.println("Log file created.");
                 } else {
-//                    System.out.println("File already exists.");
+                    System.out.println("Log file already exists.");
                     return;
                 }
 
@@ -1546,9 +1545,9 @@ public class EventListener extends ListenerAdapter {
                 }
 
                 if (tempFile.delete()) {
-//                    System.out.println("Temp file deleted successfully.");
+                    System.out.println("Temp file deleted successfully.");
                 } else {
-//                    System.out.println("Unable to delete temp file.");
+                    System.out.println("Unable to delete temp file.");
                 }
             } catch (java.io.IOException exx) {
                 exx.printStackTrace();
@@ -1989,9 +1988,9 @@ public class EventListener extends ListenerAdapter {
             String currentGuild;
 
             if (tempFile.createNewFile()) {
-//                System.out.println("File created.");
+                System.out.println("Temp file created.");
             } else {
-//                System.out.println("File already exists.");
+                System.out.println("Temp file already exists.");
             }
 
             //Loop through every line in tracked file and if it does not match the name of the
@@ -2022,15 +2021,15 @@ public class EventListener extends ListenerAdapter {
     private void renameTrackedFile() {
         //Delete old tracked file and rename the temp file to the tracked file.
         if (trackedFile.delete()) {
-//            System.out.println("Tracked file deleted successfully.");
+            System.out.println("Tracked file deleted successfully.");
         } else {
-//            System.out.println("Unable to delete tracked file.");
+            System.out.println("Unable to delete tracked file.");
         }
 
         if (tempFile.renameTo(trackedFile)) {
-//            System.out.println("Temp file renamed successfully.");
+            System.out.println("Temp file renamed successfully.");
         } else {
-//            System.out.println("Unable to rename temp file.");
+            System.out.println("Unable to rename temp file.");
         }
     }
 
@@ -2115,31 +2114,29 @@ public class EventListener extends ListenerAdapter {
      * @return Message to say guild set or not.
      */
     private String setGuild(String guildName, Guild guild) {
-        String wynncraftGuild = findGuild(guildName);
-
         try {
             if (guildFile.createNewFile()) {
-//                System.out.println("File created.");
+                System.out.println("Guild file created.");
             } else {
-//                System.out.println("File already exists.");
+                System.out.println("Guild file already exists.");
             }
 
             try {
-                wynnAPI.v1().guildStats(wynncraftGuild).run();
+                wynnAPI.v1().guildStats(guildName).run();
             } catch (APIResponseException ex) {
                 return guildName + " is not a valid Guild.";
             }
 
-            saveGuildPrefix(wynncraftGuild, guild);
+            saveGuildPrefix(guildName, guild);
 
             FileWriter guildFileWriter = new FileWriter("/home/opc/CC-117/" + guild.getId() + "/" + "guild.txt");
-            guildFileWriter.write(wynncraftGuild);
+            guildFileWriter.write(guildName);
             guildFileWriter.close();
         } catch (java.io.IOException ex) {
             return ex.toString();
         }
 
-        return "Set " + wynncraftGuild + " as Guild.";
+        return "Set " + guildName + " as Guild.";
     }
 
     /**
@@ -2157,9 +2154,9 @@ public class EventListener extends ListenerAdapter {
             Files.createDirectories(Path.of("/home/opc/CC-117/" + guild.getId()));
 
             if (allyFile.createNewFile()) {
-//                System.out.println("File created.");
+                System.out.println("Ally file created.");
             } else {
-//                System.out.println("File already exists.");
+                System.out.println("Ally file already exists.");
             }
 
             try {
@@ -2193,9 +2190,9 @@ public class EventListener extends ListenerAdapter {
             String currentLine;
 
             if (tempFile.createNewFile()) {
-//                System.out.println("File created.");
+                System.out.println("Temp file created.");
             } else {
-//                System.out.println("File already exists.");
+                System.out.println("Temp file already exists.");
             }
 
             //Loop through every line in ally file and if it does not match the name of the
@@ -2211,15 +2208,15 @@ public class EventListener extends ListenerAdapter {
 
             //Delete old ally file and rename the temp file to the ally file.
             if (allyFile.delete()) {
-//                System.out.println("Ally file deleted successfully.");
+                System.out.println("Ally file deleted successfully.");
             } else {
-//                System.out.println("Unable to delete ally file.");
+                System.out.println("Unable to delete ally file.");
             }
 
             if (tempFile.renameTo(allyFile)) {
-//                System.out.println("Temp file renamed successfully.");
+                System.out.println("Temp file renamed successfully.");
             } else {
-//                System.out.println("Unable to rename temp file.");
+                System.out.println("Unable to rename temp file.");
             }
 
         } catch (java.io.IOException ex) {
