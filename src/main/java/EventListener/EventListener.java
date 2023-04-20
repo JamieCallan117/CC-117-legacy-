@@ -699,7 +699,7 @@ public class EventListener extends ListenerAdapter {
                             String suffix = findGuildTag(allyGuild.getName());
 
                             //Attempt to change nickname.
-                            if (!member.getEffectiveName().equals(allyGuild.getMembers()[j].getName())) {
+                            if (!member.getEffectiveName().equals(allyGuild.getMembers()[j].getName() + " [" + suffix + "]")) {
                                 try {
                                     member.modifyNickname(allyGuild.getMembers()[j].getName() + " [" + suffix + "]").queue();
                                     System.out.println("Verified " + member.getUser().getName() + " as Ally Guild member " + allyGuild.getMembers()[j].getName());
