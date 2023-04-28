@@ -2,6 +2,7 @@ package EventListener;
 
 import MessageObjects.GuildAverageMembers;
 import MessageObjects.PlayerLastLogin;
+import MessageObjects.PossibleGuilds;
 import MessageType.PagedMessage;
 import me.bed0.jWynn.WynncraftAPI;
 import me.bed0.jWynn.api.common.GuildRank;
@@ -75,6 +76,7 @@ public class EventListener extends ListenerAdapter {
     WynncraftPlayer player;
     List<PagedMessage> pagedMessages = new ArrayList<>();
     private WynncraftOnlinePlayers onlineServers;
+    private List<PossibleGuilds> possibleGuilds = new ArrayList<>();
 
     /**
      * When bot starts in a server, set up file paths and start the thread to run updateOnlineAverage and
@@ -366,7 +368,7 @@ public class EventListener extends ListenerAdapter {
                     event.deferReply().queue();
                     OptionMapping guildNameOption = event.getOption("guild_name");
                     if (guildNameOption != null) {
-                        event.getHook().sendMessage(setGuild(guildNameOption.getAsString(), event.getGuild())).queue();
+                        event.getHook().sendMessage(setGuild(guildNameOption.getAsString(), event.getGuild(), event)).queue();
                     } else {
                         event.getHook().sendMessage("Please enter a Guild name.").setEphemeral(true).queue();
                     }
@@ -379,7 +381,7 @@ public class EventListener extends ListenerAdapter {
                     event.deferReply().queue();
                     OptionMapping addAllyNameOption = event.getOption("guild_name");
                     if (addAllyNameOption != null) {
-                        event.getHook().sendMessage(addAlly(addAllyNameOption.getAsString(), event.getGuild())).queue();
+                        event.getHook().sendMessage(addAlly(addAllyNameOption.getAsString(), event.getGuild(), event)).queue();
                     } else {
                         event.getHook().sendMessage("Please enter a Guild name.").setEphemeral(true).queue();
                     }
@@ -392,7 +394,7 @@ public class EventListener extends ListenerAdapter {
                     event.deferReply().queue();
                     OptionMapping removeAllyNameOption = event.getOption("guild_name");
                     if (removeAllyNameOption != null) {
-                        event.getHook().sendMessage(removeAlly(removeAllyNameOption.getAsString(), event.getGuild())).queue();
+                        event.getHook().sendMessage(removeAlly(removeAllyNameOption.getAsString(), event.getGuild(), event)).queue();
                     } else {
                         event.getHook().sendMessage("Please enter a Guild name.").setEphemeral(true).queue();
                     }
@@ -405,7 +407,7 @@ public class EventListener extends ListenerAdapter {
                     event.deferReply().queue();
                     OptionMapping trackGuildNameOption = event.getOption("guild_name");
                     if (trackGuildNameOption != null) {
-                        event.getHook().sendMessage(trackGuild(trackGuildNameOption.getAsString(), event.getGuild())).queue();
+                        event.getHook().sendMessage(trackGuild(trackGuildNameOption.getAsString(), event.getGuild(), event)).queue();
                     } else {
                         event.getHook().sendMessage("Please enter a Guild name.").setEphemeral(true).queue();
                     }
@@ -418,7 +420,7 @@ public class EventListener extends ListenerAdapter {
                     event.deferReply().queue();
                     OptionMapping untrackGuildNameOption = event.getOption("guild_name");
                     if (untrackGuildNameOption != null) {
-                        event.getHook().sendMessage(untrackGuild(untrackGuildNameOption.getAsString(), event.getGuild())).queue();
+                        event.getHook().sendMessage(untrackGuild(untrackGuildNameOption.getAsString(), event.getGuild(), event)).queue();
                     } else {
                         event.getHook().sendMessage("Please enter a Guild name.").setEphemeral(true).queue();
                     }
@@ -449,9 +451,9 @@ public class EventListener extends ListenerAdapter {
                     OptionMapping timezoneOption = event.getOption("timezone");
 
                     if (timezoneOption == null) {
-                        event.getHook().sendMessage(activeHours(activeHoursGuildNameOption.getAsString(), "UTC")).queue();
+                        event.getHook().sendMessage(activeHours(activeHoursGuildNameOption.getAsString(), "UTC", event)).queue();
                     } else {
-                        event.getHook().sendMessage(activeHours(activeHoursGuildNameOption.getAsString(), timezoneOption.getAsString())).queue();
+                        event.getHook().sendMessage(activeHours(activeHoursGuildNameOption.getAsString(), timezoneOption.getAsString(), event)).queue();
                     }
                 } else {
                     event.getHook().sendMessage("Please enter a Guild name.").setEphemeral(true).queue();
@@ -462,7 +464,7 @@ public class EventListener extends ListenerAdapter {
                 event.deferReply().queue();
                 OptionMapping lastLoginsGuildNameOption = event.getOption("guild_name");
                 if (lastLoginsGuildNameOption != null) {
-                    PagedMessage pagedMessage = lastLogins(lastLoginsGuildNameOption.getAsString());
+                    PagedMessage pagedMessage = lastLogins(lastLoginsGuildNameOption.getAsString(), event);
                     event.getHook().sendMessage(pagedMessage.getPage(0))
                             .addActionRow(
                                     Button.primary("previousPage", Emoji.fromFormatted("⬅️")),
@@ -1184,15 +1186,31 @@ public class EventListener extends ListenerAdapter {
      * @param guild The current Discord server.
      * @return The message to be sent back.
      */
-    private String trackGuild(String guildName, Guild guild) {
-        String wynncraftGuild = findGuild(guildName);
+    private String trackGuild(String guildName, Guild guild, SlashCommandInteractionEvent event) {
+        String wynncraftGuild = findGuild(guildName, event);
+
+        if (wynncraftGuild.equals("MultiplePossibilities")) {
+            StringBuilder builder = new StringBuilder("Multiple guilds found with the prefix: " + guildName + ".\nPlease try again using the full name, it should be one of the following:\n");
+
+            for (PossibleGuilds possibleGuild : possibleGuilds) {
+                builder.append(possibleGuild.getFormattedString());
+
+                if (possibleGuilds.indexOf(possibleGuild) != possibleGuilds.size() - 1) {
+                    builder.append("\n");
+                } else {
+                    builder.append("\nClicking button to select choice coming soon™");
+                }
+            }
+
+            return builder.toString();
+        }
 
         try {
             //Get all the current online members in the guild.
             int currentMembers = getOnlineMembers(wynnAPI.v1().guildStats(wynncraftGuild).run());
             int onlineCaptains = getOnlineCaptains(wynnAPI.v1().guildStats(wynncraftGuild).run());
 
-            saveGuildPrefix(wynncraftGuild, guild);
+            saveGuildPrefix(wynncraftGuild, guild, event);
 
             try {
                 //Use Guild ID to create directory with name unique to the current server.
@@ -1267,9 +1285,13 @@ public class EventListener extends ListenerAdapter {
      * @param guildName The name of the Wynncraft guild.
      * @param guild The current Discord server.
      */
-    private void saveGuildPrefix(String guildName, Guild guild)  {
+    private void saveGuildPrefix(String guildName, Guild guild, SlashCommandInteractionEvent event)  {
         //Retrieves the guild prefix.
         String prefix = wynnAPI.v1().guildStats(guildName).run().getPrefix();
+
+        if (findGuild(prefix, event) != null) {
+            return;
+        }
 
         try {
             if (!prefixFile.exists()) {
@@ -1563,7 +1585,7 @@ public class EventListener extends ListenerAdapter {
      * @param timezone The timezone to view the active hours in.
      * @return The string message to display.
      */
-    private String activeHours(String inputGuild, String timezone) {
+    private String activeHours(String inputGuild, String timezone, SlashCommandInteractionEvent event) {
         try {
             Scanner scanner = new Scanner(trackedFile);
             String currentLine;
@@ -1574,7 +1596,27 @@ public class EventListener extends ListenerAdapter {
                 return "No guilds are being tracked";
             }
 
-            String guildName = findGuild(inputGuild);
+            String guildName = findGuild(inputGuild, event);
+
+            if (guildName == null) {
+                return inputGuild + " is an unknown guild.";
+            }
+
+            if (guildName.equals("MultiplePossibilities")) {
+                StringBuilder builder = new StringBuilder("Multiple guilds found with the prefix: " + inputGuild + ".\nPlease try again using the full name, it should be one of the following:\n");
+
+                for (PossibleGuilds possibleGuild : possibleGuilds) {
+                    builder.append(possibleGuild.getFormattedString());
+
+                    if (possibleGuilds.indexOf(possibleGuild) != possibleGuilds.size() - 1) {
+                        builder.append("\n");
+                    } else {
+                        builder.append("\nClicking button to select choice coming soon™");
+                    }
+                }
+
+                return builder.toString();
+            }
 
             //Find the guild in tracked guilds file.
             while(scanner.hasNextLine()) {
@@ -1824,8 +1866,8 @@ public class EventListener extends ListenerAdapter {
         }
     }
 
-    private PagedMessage lastLogins(String inputGuild) {
-        String guildName = findGuild(inputGuild);
+    private PagedMessage lastLogins(String inputGuild, SlashCommandInteractionEvent event) {
+        String guildName = findGuild(inputGuild, event);
         StringBuilder lastLogins = new StringBuilder();
         List<String> lastLoginPages = new ArrayList<>();
         List<PlayerLastLogin> playerLastLogins = new ArrayList<>();
@@ -1833,6 +1875,23 @@ public class EventListener extends ListenerAdapter {
 
         if (guildName == null) {
             lastLoginPages.add("Guild does not exist");
+            return new PagedMessage(lastLoginPages);
+        }
+
+        if (guildName.equals("MultiplePossibilities")) {
+            StringBuilder builder = new StringBuilder("Multiple guilds found with the prefix: " + inputGuild + ".\nPlease try again using the full name, it should be one of the following:\n");
+
+            for (PossibleGuilds possibleGuild : possibleGuilds) {
+                builder.append(possibleGuild.getFormattedString());
+
+                if (possibleGuilds.indexOf(possibleGuild) != possibleGuilds.size() - 1) {
+                    builder.append("\n");
+                } else {
+                    builder.append("\nClicking button to select choice coming soon™");
+                }
+            }
+
+            lastLoginPages.add(builder.toString());
             return new PagedMessage(lastLoginPages);
         }
 
@@ -1907,7 +1966,7 @@ public class EventListener extends ListenerAdapter {
      * @param input The guild to find.
      * @return The case-sensitive guild name.
      */
-    private String findGuild(String input) {
+    private String findGuild(String input, SlashCommandInteractionEvent event) {
         try {
             //See if the guild name is valid, otherwise the exception will be caught.
             return wynnAPI.v1().guildStats(input).run().getName();
@@ -1917,6 +1976,7 @@ public class EventListener extends ListenerAdapter {
                 String currentLine;
                 String currentName;
                 String currentPrefix;
+                possibleGuilds = new ArrayList<>();
 
                 //Loop through the file and see if the input matches the guild name or prefix ignoring case and if so
                 //return the name in the file.
@@ -1926,17 +1986,21 @@ public class EventListener extends ListenerAdapter {
                     currentPrefix = Arrays.asList(currentLine.split(",")).get(1);
 
                     if (input.equalsIgnoreCase(currentName)) {
-                        scanner.close();
-                        return currentName;
+                        possibleGuilds.add(new PossibleGuilds(currentPrefix, currentName));
                     }
 
                     if (input.equalsIgnoreCase(currentPrefix)) {
-                        scanner.close();
-                        return currentName;
+                        possibleGuilds.add(new PossibleGuilds(currentPrefix, currentName));
                     }
                 }
 
                 scanner.close();
+
+                if (possibleGuilds.size() == 1) {
+                    return possibleGuilds.get(0).getName();
+                } else if (possibleGuilds.size() > 1) {
+                    return "MultiplePossibilities";
+                }
 
                 return null;
             } catch (FileNotFoundException exx) {
@@ -1979,8 +2043,28 @@ public class EventListener extends ListenerAdapter {
      * @param guild The current Discord server.
      * @return Message to send back.
      */
-    private String untrackGuild(String guildName, Guild guild) {
-        String wynncraftGuild = findGuild(guildName);
+    private String untrackGuild(String guildName, Guild guild, SlashCommandInteractionEvent event) {
+        String wynncraftGuild = findGuild(guildName, event);
+
+        if (wynncraftGuild == null) {
+            return guildName + " is an unknown guild.";
+        }
+
+        if (wynncraftGuild.equals("MultiplePossibilities")) {
+            StringBuilder builder = new StringBuilder("Multiple guilds found with the prefix: " + guildName + ".\nPlease try again using the full name, it should be one of the following:\n");
+
+            for (PossibleGuilds possibleGuild : possibleGuilds) {
+                builder.append(possibleGuild.getFormattedString());
+
+                if (possibleGuilds.indexOf(possibleGuild) != possibleGuilds.size() - 1) {
+                    builder.append("\n");
+                } else {
+                    builder.append("\nClicking button to select choice coming soon™");
+                }
+            }
+
+            return builder.toString();
+        }
 
         try {
             Scanner scanner = new Scanner(trackedFile);
@@ -2113,7 +2197,7 @@ public class EventListener extends ListenerAdapter {
      * @param guild The Discord server to get the ID from, so it can store it in a unique file.
      * @return Message to say guild set or not.
      */
-    private String setGuild(String guildName, Guild guild) {
+    private String setGuild(String guildName, Guild guild, SlashCommandInteractionEvent event) {
         try {
             if (guildFile.createNewFile()) {
                 System.out.println("Guild file created.");
@@ -2121,13 +2205,35 @@ public class EventListener extends ListenerAdapter {
                 System.out.println("Guild file already exists.");
             }
 
+            String wynncraftGuild = findGuild(guildName, event);
+
+            if (wynncraftGuild == null) {
+                return guildName + " is an unknown guild.";
+            }
+
+            if (wynncraftGuild.equals("MultiplePossibilities")) {
+                StringBuilder builder = new StringBuilder("Multiple guilds found with the prefix: " + guildName + ".\nPlease try again using the full name, it should be one of the following:\n");
+
+                for (PossibleGuilds possibleGuild : possibleGuilds) {
+                    builder.append(possibleGuild.getFormattedString());
+
+                    if (possibleGuilds.indexOf(possibleGuild) != possibleGuilds.size() - 1) {
+                        builder.append("\n");
+                    } else {
+                        builder.append("\nClicking button to select choice coming soon™");
+                    }
+                }
+
+                return builder.toString();
+            }
+
             try {
-                wynnAPI.v1().guildStats(guildName).run();
+                wynnAPI.v1().guildStats(wynncraftGuild).run();
             } catch (APIResponseException ex) {
                 return guildName + " is not a valid Guild.";
             }
 
-            saveGuildPrefix(guildName, guild);
+            saveGuildPrefix(guildName, guild, event);
 
             FileWriter guildFileWriter = new FileWriter("/home/opc/CC-117/" + guild.getId() + "/" + "guild.txt");
             guildFileWriter.write(guildName);
@@ -2146,8 +2252,28 @@ public class EventListener extends ListenerAdapter {
      * @param guild The current Discord server so the file can be created/read uniquely.
      * @return Message to say Ally added or not.
      */
-    private String addAlly(String guildName, Guild guild) {
-        String wynncraftGuild = findGuild(guildName);
+    private String addAlly(String guildName, Guild guild, SlashCommandInteractionEvent event) {
+        String wynncraftGuild = findGuild(guildName, event);
+
+        if (wynncraftGuild == null) {
+            return guildName + " is an unknown guild.";
+        }
+
+        if (wynncraftGuild.equals("MultiplePossibilities")) {
+            StringBuilder builder = new StringBuilder("Multiple guilds found with the prefix: " + guildName + ".\nPlease try again using the full name, it should be one of the following:\n");
+
+            for (PossibleGuilds possibleGuild : possibleGuilds) {
+                builder.append(possibleGuild.getFormattedString());
+
+                if (possibleGuilds.indexOf(possibleGuild) != possibleGuilds.size() - 1) {
+                    builder.append("\n");
+                } else {
+                    builder.append("\nClicking button to select choice coming soon™");
+                }
+            }
+
+            return builder.toString();
+        }
 
         try {
             //Use Guild ID to create directory with name unique to the current server.
@@ -2165,7 +2291,7 @@ public class EventListener extends ListenerAdapter {
                 return guildName + " is not a valid Guild.";
             }
 
-            saveGuildPrefix(wynncraftGuild, guild);
+            saveGuildPrefix(wynncraftGuild, guild, event);
 
             Files.write(Path.of("/home/opc/CC-117/" + guild.getId() + "/" + "allies.txt"), (wynncraftGuild + "\n").getBytes(), StandardOpenOption.APPEND);
         } catch (java.io.IOException ex) {
@@ -2182,8 +2308,28 @@ public class EventListener extends ListenerAdapter {
      * @param guild The current Discord server so that the correct ally file can be found.
      * @return Message to say Ally removed or not.
      */
-    private String removeAlly(String guildName, Guild guild) {
-        String wynncraftGuild = findGuild(guildName);
+    private String removeAlly(String guildName, Guild guild, SlashCommandInteractionEvent event) {
+        String wynncraftGuild = findGuild(guildName, event);
+
+        if (wynncraftGuild == null) {
+            return guildName + " is an unknown guild.";
+        }
+
+        if (wynncraftGuild.equals("MultiplePossibilities")) {
+            StringBuilder builder = new StringBuilder("Multiple guilds found with the prefix: " + guildName + ".\nPlease try again using the full name, it should be one of the following:\n");
+
+            for (PossibleGuilds possibleGuild : possibleGuilds) {
+                builder.append(possibleGuild.getFormattedString());
+
+                if (possibleGuilds.indexOf(possibleGuild) != possibleGuilds.size() - 1) {
+                    builder.append("\n");
+                } else {
+                    builder.append("\nClicking button to select choice coming soon™");
+                }
+            }
+
+            return builder.toString();
+        }
 
         try {
             Scanner scanner = new Scanner(allyFile);
