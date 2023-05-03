@@ -2178,7 +2178,7 @@ public class EventListener extends ListenerAdapter {
                 }
             }
 
-            if (counter != 10) {
+            if (counter != 0) {
                 guildAverages.append("```");
                 trackedPages.add(guildAverages.toString());
             }
