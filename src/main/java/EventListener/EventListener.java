@@ -1552,7 +1552,20 @@ public class EventListener extends ListenerAdapter {
                     System.out.println("Log file created.");
                 } else {
                     System.out.println("Log file already exists.");
-                    return;
+
+                    if (logFile.delete()) {
+                        System.out.println("Old log file deleted");
+                    } else {
+                        System.out.println("Failed to delete old log file, returning.");
+
+                        if (tempFile.delete()) {
+                            System.out.println("Temp file deleted successfully.");
+                        } else {
+                            System.out.println("Unable to delete temp file.");
+                        }
+
+                        return;
+                    }
                 }
 
                 FileOutputStream file = new FileOutputStream(logFile);
