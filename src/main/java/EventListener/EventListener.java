@@ -120,21 +120,22 @@ public class EventListener extends ListenerAdapter {
         }
 
         //Run once on start
-        updateOnlinePlayers();
+        updateOnlinePlayers(event.getGuild());
 
         try {
             //Run this every hour
             ScheduledExecutorService updateExecutor = Executors.newSingleThreadScheduledExecutor();
             updateExecutor.scheduleWithFixedDelay(() -> {
+                int currentMinute = Instant.now().atZone(ZoneOffset.UTC).getMinute();
 
                 //If currently on an exact hour, eg 13:00, 23:00 etc then enter the if statement.
-                if (Instant.now().atZone(ZoneOffset.UTC).getMinute() == 0) {
+                if (currentMinute == 0) {
                     //Thread to run the updateRanks and updateOnlineAverage methods.
                     Thread updateRanks = new Thread(() -> {
                         System.out.println("Running thread at " + Instant.now().atZone(ZoneOffset.UTC).getHour() + ":" + Instant.now().atZone(ZoneOffset.UTC).getMinute() + " on " + Instant.now().atZone(ZoneOffset.UTC).getDayOfMonth() + "/" + Instant.now().atZone(ZoneOffset.UTC).getMonthValue() + "/" + Instant.now().atZone(ZoneOffset.UTC).getYear());
                         String response = updateRanks(event.getGuild());
                         //Run this here to ensure it's updated before online average is calculated again.
-                        updateOnlinePlayers();
+                        updateOnlinePlayers(event.getGuild());
                         updateOnlineAverage(event.getGuild());
 
                         if (!response.equals("Updated roles for 0 members!")) {
@@ -159,9 +160,9 @@ public class EventListener extends ListenerAdapter {
                 }
 
                 //If at xx:20 or xx:40 run this
-                if (Instant.now().atZone(ZoneOffset.UTC).getMinute() == 20 || Instant.now().atZone(ZoneOffset.UTC).getMinute() == 40) {
+                if (currentMinute == 10 || currentMinute == 20 || currentMinute == 30 || currentMinute == 40 || currentMinute == 50) {
                     Thread updateOnlinePlayers = new Thread(() -> {
-                        updateOnlinePlayers();
+                        updateOnlinePlayers(event.getGuild());
 
                         System.out.println("Updating online players at: " + Instant.now().atZone(ZoneOffset.UTC).getHour() + ":" + Instant.now().atZone(ZoneOffset.UTC).getMinute() + " on " + Instant.now().atZone(ZoneOffset.UTC).getDayOfMonth() + "/" + Instant.now().atZone(ZoneOffset.UTC).getMonthValue() + "/" + Instant.now().atZone(ZoneOffset.UTC).getYear());
                     });
@@ -170,30 +171,51 @@ public class EventListener extends ListenerAdapter {
                     updateOnlinePlayers.start();
                 }
             }, 0, 1, TimeUnit.MINUTES);
-        }  catch (Exception ex) {
+        } catch (APIResponseException ex) {
             ex.printStackTrace();
 
             TextChannel channel = event.getGuild().getTextChannelById("1061698530651144212");
 
+            String message = "Response exception, guild probably no longer exists.";
+
+            sendLogFile(ex, event.getGuild(), channel, message);
+        } catch (APIRateLimitExceededException ex) {
+            ex.printStackTrace();
+
+            TextChannel channel = event.getGuild().getTextChannelById("1061698530651144212");
+
+            String message = "Rate limit exceeded.";
+
+            sendLogFile(ex, event.getGuild(), channel, message);
+        } catch (Exception ex) {
+            ex.printStackTrace();
+
+            TextChannel channel = event.getGuild().getTextChannelById("1061698530651144212");
+
+            String message = "Something broke :(";
+
+            sendLogFile(ex, event.getGuild(), channel, message);
+        }
+    }
+
+    private void sendLogFile(Exception exception, Guild guild, TextChannel channel, String message) {
+        File logFile = new File("/home/opc/CC-117/" + guild.getId() + "/" + "logs.txt");
+
+        FileOutputStream file = null;
+
+        try {
+            file = new FileOutputStream(logFile);
+
+            PrintStream output = new PrintStream(file);
+
+            exception.printStackTrace(output);
+
             if (channel != null) {
-                channel.sendMessage("Checks the logs, something broke").queue();
+                FileUpload upload = FileUpload.fromData(new FileInputStream("/home/opc/CC-117/" + guild.getId() + "/" + "logs.txt"), "logs.txt");
+                channel.sendMessage("Response exception, guild probably deleted").addFiles(upload).queue();
             }
-
-            File logFile = new File("/home/opc/CC-117/" + event.getGuild().getId() + "/" + "logs.txt");
-
-            try {
-                if (logFile.createNewFile()) {
-                    System.out.println("Log file created.");
-                } else {
-                    System.out.println("Log file already exists.");
-                }
-
-                FileWriter logFileWriter = new FileWriter("/home/opc/CC-117/" + event.getGuild().getId() + "/" + "logs.txt");
-                logFileWriter.write(String.valueOf(ex));
-                logFileWriter.close();
-            } catch (java.io.IOException exx) {
-                exx.printStackTrace();
-            }
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
         }
     }
 
@@ -1371,8 +1393,16 @@ public class EventListener extends ListenerAdapter {
         }
     }
 
-    private void updateOnlinePlayers() {
-        onlineServers = wynnAPI.v1().onlinePlayers().run();
+    private void updateOnlinePlayers(Guild guild) {
+        try {
+            onlineServers = wynnAPI.v1().onlinePlayers().run();
+        } catch (APIRateLimitExceededException ex) {
+            TextChannel channel = guild.getTextChannelById("1061698530651144212");
+
+            String message = "Rate limit exceeded";
+
+            sendLogFile(ex, guild, channel, message);
+        }
     }
 
     /**
@@ -1540,6 +1570,86 @@ public class EventListener extends ListenerAdapter {
 
         } catch (java.io.IOException ex) {
             System.out.println("Error accessing file");
+        } catch (APIResponseException ex) {
+            ex.printStackTrace();
+
+            TextChannel channel = guild.getTextChannelById("1061698530651144212");
+
+            File logFile = new File("/home/opc/CC-117/" + guild.getId() + "/" + "logs.txt");
+
+            try {
+                if (logFile.createNewFile()) {
+                    System.out.println("Log file created.");
+                } else {
+                    System.out.println("Log file already exists.");
+
+                    if (logFile.delete()) {
+                        System.out.println("Old log file deleted");
+                    } else {
+                        System.out.println("Failed to delete old log file, returning.");
+
+                        if (tempFile.delete()) {
+                            System.out.println("Temp file deleted successfully.");
+                        } else {
+                            System.out.println("Unable to delete temp file.");
+                        }
+
+                        return;
+                    }
+                }
+
+                String message = "Response exception, guild probably no longer exists.";
+
+                sendLogFile(ex, guild, channel, message);
+
+                if (tempFile.delete()) {
+                    System.out.println("Temp file deleted successfully.");
+                } else {
+                    System.out.println("Unable to delete temp file.");
+                }
+            } catch (java.io.IOException exx) {
+                exx.printStackTrace();
+            }
+        } catch (APIRateLimitExceededException ex) {
+            ex.printStackTrace();
+
+            TextChannel channel = guild.getTextChannelById("1061698530651144212");
+
+            File logFile = new File("/home/opc/CC-117/" + guild.getId() + "/" + "logs.txt");
+
+            try {
+                if (logFile.createNewFile()) {
+                    System.out.println("Log file created.");
+                } else {
+                    System.out.println("Log file already exists.");
+
+                    if (logFile.delete()) {
+                        System.out.println("Old log file deleted");
+                    } else {
+                        System.out.println("Failed to delete old log file, returning.");
+
+                        if (tempFile.delete()) {
+                            System.out.println("Temp file deleted successfully.");
+                        } else {
+                            System.out.println("Unable to delete temp file.");
+                        }
+
+                        return;
+                    }
+                }
+
+                String message = "Rate limit exceeded.";
+
+                sendLogFile(ex, guild, channel, message);
+
+                if (tempFile.delete()) {
+                    System.out.println("Temp file deleted successfully.");
+                } else {
+                    System.out.println("Unable to delete temp file.");
+                }
+            } catch (java.io.IOException exx) {
+                exx.printStackTrace();
+            }
         } catch (Exception ex) {
             ex.printStackTrace();
 
@@ -1568,16 +1678,9 @@ public class EventListener extends ListenerAdapter {
                     }
                 }
 
-                FileOutputStream file = new FileOutputStream(logFile);
+                String message = "Something broke :(";
 
-                PrintStream output = new PrintStream(file);
-
-                ex.printStackTrace(output);
-
-                if (channel != null) {
-                    FileUpload upload = FileUpload.fromData(new FileInputStream("/home/opc/CC-117/" + guild.getId() + "/" + "logs.txt"), "logs.txt");
-                    channel.sendMessage("Something broke :(").addFiles(upload).queue();
-                }
+                sendLogFile(ex, guild, channel, message);
 
                 if (tempFile.delete()) {
                     System.out.println("Temp file deleted successfully.");
