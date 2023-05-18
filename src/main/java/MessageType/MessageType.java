@@ -1,0 +1,5 @@
+package MessageType;
+
+public enum MessageType {
+    ACTIVE_HOURS, ADD_ALLY, LAST_LOGINS, REMOVE_ALLY, SET_GUILD, TRACK_GUILD, UNTRACK_GUILD
+}
