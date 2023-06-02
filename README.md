@@ -1,3 +1,5 @@
+# Currently being remade in JavaScript, no new features will be added to this version
+
 # CC-117
 
 This is a Discord bot for the Discord server containing the guild members of the Wynncraft MMORPG Minecraft server, Chiefs Of Corkus.
